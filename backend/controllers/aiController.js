@@ -5,18 +5,22 @@ const { sendSuccess, sendError } = require('../utils/responseHelper');
 exports.chat = async (req, res, next) => {
   try {
     const { message, chatHistory, learnerLevel } = req.body;
+    if (!message || typeof message !== 'string' || message.trim().length > 1000) {
+      return sendError(res, 'A message up to 1,000 characters is required.', 400);
+    }
     
-    const response = await aiService.chatAssistant({ messages: [{ role: 'user', content: message }, ...(chatHistory || [])], learnerLevel, userProfile: req.user });
+    const { data, tokensUsed } = await aiService.chatAssistant({ messages: [...(chatHistory || []), { role: 'user', content: message }], learnerLevel });
     
     await AIInteraction.create({
       userId: req.user.id,
       type: 'assistant_chat',
       prompt: message,
-      response,
+      response: data,
+      tokensUsed,
       success: true
     });
     
-    sendSuccess(res, { response }, 'Chat response generated');
+    sendSuccess(res, data, 'Chat response generated');
   } catch (err) {
     await AIInteraction.create({
       userId: req.user.id,

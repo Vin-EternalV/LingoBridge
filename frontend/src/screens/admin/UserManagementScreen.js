@@ -16,11 +16,7 @@ const UserManagementScreen = () => {
     try {
       setLoading(true);
       const res = await adminApi.getUsers({ search });
-      setUsers(res.data || res.users || [
-        { _id: '1', firstName: 'Juan', lastName: 'Dela Cruz', email: 'juan@example.com', role: 'learner', isActive: true, createdAt: '2026-08-10' },
-        { _id: '2', firstName: 'Maria', lastName: 'Santos', email: 'maria@example.com', role: 'learner', isActive: true, createdAt: '2026-08-14' },
-        { _id: '3', firstName: 'Admin', lastName: 'User', email: 'admin@lingobridge.com', role: 'admin', isActive: true, createdAt: '2026-01-01' }
-      ]);
+      setUsers(res.data || res.users || []);
     } catch (err) {
       console.log('Fetch users error:', err);
     } finally {

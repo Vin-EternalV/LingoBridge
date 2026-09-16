@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
+import { updateSession } from '../../api/practice';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../constants/theme';
 
 const FeedbackScreen = ({ route, navigation }) => {
@@ -13,7 +14,10 @@ const FeedbackScreen = ({ route, navigation }) => {
     topic, 
     difficulty,
     exercises,
-    scoreInfo 
+    scoreInfo,
+    sessionId,
+    startedAt,
+    answers = []
   } = route.params;
 
   const isLastQuestion = currentIndex === totalExercises - 1;
@@ -22,14 +26,43 @@ const FeedbackScreen = ({ route, navigation }) => {
     total: scoreInfo.total + 1
   };
 
-  const handleNext = () => {
+  const [saving, setSaving] = useState(false);
+  const currentAnswer = {
+    exerciseData: route.params.exercise,
+    userAnswer: feedback.userAnswer,
+    isCorrect: feedback.isCorrect,
+    score: feedback.score,
+    feedback,
+    answeredAt: new Date().toISOString()
+  };
+  const allAnswers = [...answers, currentAnswer];
+
+  const handleNext = async () => {
     if (isLastQuestion) {
+      setSaving(true);
+      const duration = Math.max(1, Math.round((Date.now() - startedAt) / 60));
+      try {
+        await updateSession(sessionId, {
+          exercises: allAnswers,
+          correctAnswers: newScoreInfo.correct,
+          totalQuestions: newScoreInfo.total,
+          score: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
+          accuracy: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
+          duration,
+          status: 'completed',
+          completedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        setSaving(false);
+        return;
+      }
       navigation.navigate('SessionSummary', {
         skill,
         topic,
         difficulty,
         scoreInfo: newScoreInfo,
-        duration: '2:45' // Mock duration
+        duration: `${duration} min`,
+        sessionId
       });
     } else {
       navigation.navigate('Exercise', {
@@ -37,8 +70,11 @@ const FeedbackScreen = ({ route, navigation }) => {
         topic,
         difficulty,
         exercises,
-        currentIndex: currentIndex + 1,
-        scoreInfo: newScoreInfo,
+          currentIndex: currentIndex + 1,
+          scoreInfo: newScoreInfo,
+          sessionId,
+          startedAt,
+          answers: allAnswers
       });
     }
   };
@@ -106,10 +142,10 @@ const FeedbackScreen = ({ route, navigation }) => {
 
       <View style={styles.footer}>
         <Button 
-          title={isLastQuestion ? "Finish Session" : "Next Question"} 
+          title={saving ? "Saving Session..." : isLastQuestion ? "Finish Session" : "Next Question"} 
           onPress={handleNext} 
           variant={feedback.isCorrect ? "primary" : "danger"}
-          fullWidth 
+          fullWidth disabled={saving}
         />
       </View>
     </SafeAreaView>

@@ -15,10 +15,7 @@ const AdminManagementScreen = () => {
     try {
       setLoading(true);
       const data = await superAdminApi.getAdmins();
-      setAdmins(data || [
-        { _id: '10', firstName: 'Admin', lastName: 'User', email: 'admin@lingobridge.com', role: 'admin', isActive: true },
-        { _id: '11', firstName: 'Super', lastName: 'Admin', email: 'superadmin@lingobridge.com', role: 'superadmin', isActive: true }
-      ]);
+      setAdmins(data || []);
     } catch (err) {
       console.log('Fetch admins error:', err);
     } finally {

@@ -137,7 +137,16 @@ exports.getAIActivityStats = async (req, res, next) => {
         }
       }
     ]);
-    sendSuccess(res, stats, 'AI Activity Stats retrieved');
+    const byType = Object.fromEntries(stats.map(item => [item._id, item]));
+    const total = stats.reduce((sum, item) => sum + item.count, 0);
+    const successful = stats.reduce((sum, item) => sum + item.successful, 0);
+    sendSuccess(res, {
+      totalExercisesGenerated: byType.exercise_generation?.count || 0,
+      totalEvaluations: byType.feedback?.count || 0,
+      totalChatInteractions: byType.assistant_chat?.count || 0,
+      successRate: total ? Math.round((successful / total) * 1000) / 10 : 0,
+      byType: stats
+    }, 'AI Activity Stats retrieved');
   } catch (err) {
     next(err);
   }
@@ -145,9 +154,16 @@ exports.getAIActivityStats = async (req, res, next) => {
 
 exports.getReports = async (req, res, next) => {
   try {
+    const [completedSessions, duration, skillDistribution] = await Promise.all([
+      PracticeSession.find({ status: 'completed' }).select('accuracy duration'),
+      PracticeSession.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: null, averageDuration: { $avg: '$duration' }, averageAccuracy: { $avg: '$accuracy' } } }]),
+      PracticeSession.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: '$skill', sessions: { $sum: 1 }, averageAccuracy: { $avg: '$accuracy' } } }, { $sort: { sessions: -1 } }])
+    ]);
     const reports = {
-      userGrowth: [], // Mock data
-      skillDistribution: [] // Mock data
+      completedSessions: completedSessions.length,
+      averagePracticeDuration: Math.round(duration[0]?.averageDuration || 0),
+      averageAccuracy: Math.round(duration[0]?.averageAccuracy || 0),
+      skillDistribution
     };
     sendSuccess(res, reports, 'Reports retrieved');
   } catch (err) {

@@ -2,7 +2,7 @@ import { get } from './client';
 
 export const getProgress = async () => {
   const response = await get('/progress');
-  return response.data;
+  return response.data.data;
 };
 
 export const getHistory = async (params) => {
@@ -12,5 +12,5 @@ export const getHistory = async (params) => {
 
 export const getSessionDetail = async (sessionId) => {
   const response = await get(`/progress/history/${sessionId}`);
-  return response.data;
+  return response.data.data;
 };

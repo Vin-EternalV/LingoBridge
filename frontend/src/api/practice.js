@@ -1,7 +1,7 @@
 import { get, post, put } from './client';
 
-export const generateExercises = async ({ skill, topic, difficulty }) => {
-  const response = await post('/practice/generate', { skill, topic, difficulty });
+export const generateExercises = async ({ skill, topic, difficulty, learnerLevel, count }) => {
+  const response = await post('/practice/generate', { skill, topic, difficulty, learnerLevel, count });
   return response.data.data;
 };
 
@@ -10,8 +10,8 @@ export const submitAnswer = async ({ exercise, userAnswer }) => {
   return response.data.data;
 };
 
-export const createSession = async ({ skill, topic, difficulty }) => {
-  const response = await post('/practice/sessions', { skill, topic, difficulty });
+export const createSession = async ({ skill, topic, difficulty, exercises }) => {
+  const response = await post('/practice/sessions', { skill, topic, difficulty, exercises, totalQuestions: exercises.length });
   return response.data.data;
 };
 

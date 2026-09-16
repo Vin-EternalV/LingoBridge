@@ -15,11 +15,7 @@ const LearningContentScreen = () => {
     try {
       setLoading(true);
       const data = await adminApi.getContent();
-      setContent(data || [
-        { _id: '1', skill: 'grammar', topic: 'Present Tenses', difficulty: 'easy', description: 'Simple & continuous tenses', isActive: true },
-        { _id: '2', skill: 'vocabulary', topic: 'Academic Vocabulary', difficulty: 'medium', description: 'Formal words for essay writing', isActive: true },
-        { _id: '3', skill: 'reading', topic: 'Short Story Comprehension', difficulty: 'easy', description: 'Identifying main themes', isActive: true }
-      ]);
+      setContent(data || []);
     } catch (err) {
       console.log('Content fetch error:', err);
     } finally {
@@ -65,7 +61,7 @@ const LearningContentScreen = () => {
           <Text style={styles.pageTitle}>Learning Topics</Text>
           <Button
             title="+ Add Topic"
-            onPress={() => Alert.alert('Add Content', 'Feature ready for creating new topics.')}
+          onPress={() => Alert.alert('Add Content', 'Use the API endpoint to add content. A content editor form has not been designed yet.')}
           />
         </View>
 

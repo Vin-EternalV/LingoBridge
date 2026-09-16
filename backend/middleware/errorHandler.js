@@ -23,6 +23,10 @@ const errorHandler = (err, req, res, next) => {
     const message = Object.values(err.errors).map(val => val.message).join(', ');
     error = { message, statusCode: 400 };
   }
+
+  if (err.message === 'Origin is not allowed by CORS') {
+    error = { message: 'This origin is not allowed to access the API', statusCode: 403 };
+  }
   
   // JWT errors
   if (err.name === 'JsonWebTokenError') {

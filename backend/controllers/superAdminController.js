@@ -1,15 +1,16 @@
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const PracticeSession = require('../models/PracticeSession');
 const mongoose = require('mongoose');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/responseHelper');
 const { ROLES } = require('../config/constants');
 
 exports.getSuperAdminDashboard = async (req, res, next) => {
   try {
-    const adminCount = await User.countDocuments({ role: { $in: [ROLES.ADMIN, ROLES.SUPERADMIN] } });
-    const logCount = await AuditLog.countDocuments();
-    
-    sendSuccess(res, { adminCount, logCount }, 'SuperAdmin Dashboard stats');
+    const [adminCount, logCount, totalUsers, activeLearners] = await Promise.all([
+      User.countDocuments({ role: { $in: [ROLES.ADMIN, ROLES.SUPERADMIN] } }), AuditLog.countDocuments(), User.countDocuments(), User.countDocuments({ role: ROLES.LEARNER, isActive: true })
+    ]);
+    sendSuccess(res, { totalUsers, totalAdmins: adminCount, activeLearners, logCount }, 'SuperAdmin Dashboard stats');
   } catch (err) {
     next(err);
   }
@@ -74,10 +75,19 @@ exports.getRolesAndPermissions = async (req, res, next) => {
 
 exports.getPlatformAnalytics = async (req, res, next) => {
   try {
-    // Mock analytics
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    const [totalUsers, activeUsersWeekly, completedSessions, accuracy] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ lastLogin: { $gte: since }, isActive: true }),
+      PracticeSession.countDocuments({ status: 'completed' }),
+      PracticeSession.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: null, average: { $avg: '$accuracy' } } }])
+    ]);
     const analytics = {
-      engagementScore: 85,
-      activeUsersWeekly: 120
+      totalUsers,
+      activeUsersWeekly,
+      completedSessions,
+      averageAccuracy: Math.round(accuracy[0]?.average || 0)
     };
     sendSuccess(res, analytics, 'Platform analytics retrieved');
   } catch (err) {

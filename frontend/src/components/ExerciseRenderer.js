@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Button from './Button';
-import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Button from "./Button";
+import { COLORS, FONTS, RADIUS, SPACING } from "../constants/theme";
 
-const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = false }) => {
+const ExerciseRenderer = ({
+  exercise,
+  userAnswer,
+  onChangeAnswer,
+  disabled = false,
+}) => {
   const [showHint, setShowHint] = useState(false);
 
   const renderMultipleChoice = () => (
@@ -22,7 +33,12 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
             <View style={[styles.radio, isSelected && styles.radioSelected]}>
               {isSelected && <View style={styles.radioInner} />}
             </View>
-            <Text style={[styles.mcOptionText, isSelected && styles.mcOptionTextSelected]}>
+            <Text
+              style={[
+                styles.mcOptionText,
+                isSelected && styles.mcOptionTextSelected,
+              ]}
+            >
               {option}
             </Text>
           </TouchableOpacity>
@@ -32,9 +48,8 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
   );
 
   const renderFillInBlank = () => {
-    // The sentence contains "___"
-    const parts = exercise.sentence.split('___');
-    
+    const parts = (exercise.sentence || exercise.question || "").split("___");
+
     return (
       <View style={styles.inputExerciseContainer}>
         <View style={styles.fibContainer}>
@@ -44,7 +59,7 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
               {index < parts.length - 1 && (
                 <TextInput
                   style={styles.fibInput}
-                  value={userAnswer || ''}
+                  value={userAnswer || ""}
                   onChangeText={onChangeAnswer}
                   editable={!disabled}
                   placeholder="type here"
@@ -53,7 +68,10 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
             </React.Fragment>
           ))}
         </View>
-        <TouchableOpacity style={styles.hintButton} onPress={() => setShowHint(!showHint)}>
+        <TouchableOpacity
+          style={styles.hintButton}
+          onPress={() => setShowHint(!showHint)}
+        >
           <Ionicons name="bulb-outline" size={20} color={COLORS.warning} />
           <Text style={styles.hintText}>Hint</Text>
         </TouchableOpacity>
@@ -74,7 +92,7 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
       <TextInput
         style={styles.textArea}
         multiline
-        value={userAnswer || ''}
+        value={userAnswer || ""}
         onChangeText={onChangeAnswer}
         editable={!disabled}
         placeholder="Type the correct sentence..."
@@ -100,7 +118,12 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
             <View style={[styles.radio, isSelected && styles.radioSelected]}>
               {isSelected && <View style={styles.radioInner} />}
             </View>
-            <Text style={[styles.mcOptionText, isSelected && styles.mcOptionTextSelected]}>
+            <Text
+              style={[
+                styles.mcOptionText,
+                isSelected && styles.mcOptionTextSelected,
+              ]}
+            >
               {option}
             </Text>
           </TouchableOpacity>
@@ -115,7 +138,7 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
       <TextInput
         style={styles.textArea}
         multiline
-        value={userAnswer || ''}
+        value={userAnswer || ""}
         onChangeText={onChangeAnswer}
         editable={!disabled}
         placeholder="Type your answer here..."
@@ -124,7 +147,12 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
   );
 
   const renderWritingPrompt = () => {
-    const wordCount = userAnswer ? userAnswer.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+    const wordCount = userAnswer
+      ? userAnswer
+          .trim()
+          .split(/\s+/)
+          .filter((w) => w.length > 0).length
+      : 0;
     return (
       <View style={styles.inputExerciseContainer}>
         <Text style={styles.questionText}>{exercise.prompt}</Text>
@@ -132,7 +160,9 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
           <View style={styles.guidelinesBox}>
             <Text style={styles.guidelinesTitle}>Guidelines:</Text>
             {exercise.guidelines.map((guide, i) => (
-              <Text key={i} style={styles.guidelinesText}>• {guide}</Text>
+              <Text key={i} style={styles.guidelinesText}>
+                • {guide}
+              </Text>
             ))}
           </View>
         )}
@@ -140,7 +170,7 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
           <TextInput
             style={[styles.textArea, styles.largeTextArea]}
             multiline
-            value={userAnswer || ''}
+            value={userAnswer || ""}
             onChangeText={onChangeAnswer}
             editable={!disabled}
             placeholder="Start writing..."
@@ -159,7 +189,9 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
         <View style={styles.guidelinesBox}>
           <Text style={styles.guidelinesTitle}>Try to include:</Text>
           {exercise.keyPhrases.map((phrase, i) => (
-            <Text key={i} style={styles.guidelinesText}>• {phrase}</Text>
+            <Text key={i} style={styles.guidelinesText}>
+              • {phrase}
+            </Text>
           ))}
         </View>
       )}
@@ -173,7 +205,7 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
       <TextInput
         style={styles.textArea}
         multiline
-        value={userAnswer || ''}
+        value={userAnswer || ""}
         onChangeText={onChangeAnswer}
         editable={!disabled}
         placeholder="Type what you would say..."
@@ -183,21 +215,47 @@ const ExerciseRenderer = ({ exercise, userAnswer, onChangeAnswer, disabled = fal
 
   if (!exercise) return null;
 
+  // Safety net: if exercise has options but no valid type, render it as multiple choice.
+  // The backend `cleanExercises` already forces type: "multiple_choice", but this
+  // guards against stale cache / manual test payloads that slip through.
   switch (exercise.type) {
-    case 'multiple_choice': return renderMultipleChoice();
-    case 'fill_in_blank': return renderFillInBlank();
-    case 'sentence_correction': return renderSentenceCorrection();
-    case 'reading_comprehension': return renderReadingComprehension();
-    case 'short_answer': return renderShortAnswer();
-    case 'writing_prompt': return renderWritingPrompt();
-    case 'speaking_prompt': return renderSpeakingPrompt();
-    default: return <Text>Unsupported exercise type</Text>;
+    case "multiple_choice":
+      return renderMultipleChoice();
+    case "fill_in_blank":
+      return renderFillInBlank();
+    case "sentence_correction":
+      return renderSentenceCorrection();
+    case "reading_comprehension":
+      return renderReadingComprehension();
+    case "short_answer":
+      return renderShortAnswer();
+    case "writing_prompt":
+      return renderWritingPrompt();
+    case "speaking_prompt":
+      return renderSpeakingPrompt();
+    default:
+      // If it has options, it's multiple-choice shaped — render it that way.
+      if (Array.isArray(exercise.options) && exercise.options.length > 0) {
+        return renderMultipleChoice();
+      }
+      // Otherwise show something useful instead of a broken screen.
+      return (
+        <View style={styles.inputExerciseContainer}>
+          <Text style={styles.questionText}>
+            {exercise.question || exercise.prompt || "Question unavailable"}
+          </Text>
+          <Text style={styles.instructionText}>
+            This exercise couldn't be displayed. Please skip or restart the
+            session.
+          </Text>
+        </View>
+      );
   }
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    width: "100%",
   },
   questionText: {
     ...FONTS.h3,
@@ -205,11 +263,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   optionsContainer: {
-    width: '100%',
+    width: "100%",
   },
   mcOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: SPACING.base,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -227,8 +285,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: SPACING.base,
   },
   radioSelected: {
@@ -247,15 +305,15 @@ const styles = StyleSheet.create({
   },
   mcOptionTextSelected: {
     color: COLORS.primaryDark,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   inputExerciseContainer: {
-    width: '100%',
+    width: "100%",
   },
   fibContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
     marginBottom: SPACING.lg,
   },
   fibText: {
@@ -270,13 +328,13 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.sm,
     ...FONTS.h3,
     color: COLORS.primaryDark,
-    textAlign: 'center',
+    textAlign: "center",
     paddingBottom: 4,
   },
   hintButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
     padding: SPACING.xs,
     marginBottom: SPACING.sm,
   },
@@ -284,7 +342,7 @@ const styles = StyleSheet.create({
     ...FONTS.small,
     color: COLORS.warning,
     marginLeft: 4,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   hintContent: {
     ...FONTS.regular,
@@ -295,8 +353,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.base,
   },
   correctionBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.errorLight,
     padding: SPACING.base,
     borderRadius: RADIUS.md,
@@ -306,7 +364,7 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     color: COLORS.error,
     marginLeft: SPACING.sm,
-    textDecorationLine: 'line-through',
+    textDecorationLine: "line-through",
   },
   instructionText: {
     ...FONTS.small,
@@ -327,10 +385,10 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   textAreaWrapper: {
-    position: 'relative',
+    position: "relative",
   },
   wordCount: {
-    position: 'absolute',
+    position: "absolute",
     bottom: SPACING.sm,
     right: SPACING.base,
     ...FONTS.tiny,
@@ -357,7 +415,7 @@ const styles = StyleSheet.create({
   },
   guidelinesTitle: {
     ...FONTS.small,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.primaryDark,
     marginBottom: 4,
   },
@@ -367,7 +425,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   recordingArea: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: SPACING.xl,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
@@ -378,8 +436,8 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: SPACING.sm,
     elevation: 4,
     shadowColor: COLORS.primary,
@@ -393,10 +451,10 @@ const styles = StyleSheet.create({
   },
   orText: {
     ...FONTS.small,
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.textSecondary,
     marginBottom: SPACING.sm,
-  }
+  },
 });
 
 export default ExerciseRenderer;

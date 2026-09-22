@@ -1,197 +1,191 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Card from '../../components/Card';
-import Header from '../../components/Header';
-import { COLORS, FONTS, RADIUS, SPACING } from '../../constants/theme';
+import React from "react";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Button from "../../components/Button";
+import Card from "../../components/Card";
+import Badge from "../../components/Badge";
+import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
-const practiceTopics = [
-  { id: 'grammar', title: 'Grammar', icon: 'book', description: 'Tenses, sentence structure, and rules', color: COLORS.primary },
-  { id: 'vocabulary', title: 'Vocabulary', icon: 'text', description: 'New words and phrases', color: '#8B5CF6' },
-  { id: 'reading', title: 'Reading', icon: 'newspaper', description: 'Comprehension exercises', color: '#10B981' },
-  { id: 'writing', title: 'Writing', icon: 'pencil', description: 'Essay and email drafting', color: '#F59E0B' },
-  { id: 'speaking', title: 'Speaking', icon: 'mic', description: 'Pronunciation and conversation', color: '#EC4899' },
-];
+const SessionSummaryScreen = ({ route, navigation }) => {
+  const { skill, topic, difficulty, scoreInfo, duration } = route.params || {};
+  const safeScore = scoreInfo || { correct: 0, total: 0 };
+  const skillTitle =
+    (skill || "practice").charAt(0).toUpperCase() +
+    (skill || "practice").slice(1);
+  const percentage = safeScore.total
+    ? Math.round((safeScore.correct / safeScore.total) * 100)
+    : 0;
 
-const PracticeScreen = ({ navigation }) => {
-  const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
-
-  const handleTopicSelect = (skillId) => {
-    navigation.navigate('TopicSelection', { 
-      skill: skillId, 
-      difficulty: selectedDifficulty 
-    });
+  const getTrophyColor = () => {
+    if (percentage >= 80) return COLORS.warning;
+    if (percentage >= 60) return "#94A3B8";
+    return "#B45309";
   };
+
+  // FIX: 'Dashboard' is a TAB inside MainTabs, not a route in LearnerStack.
+  const goToDashboard = () =>
+    navigation.navigate("MainTabs", { screen: "Home" });
+  const goToPractice = () =>
+    navigation.navigate("MainTabs", { screen: "PracticeTab" });
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Practice Skills" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Default Difficulty</Text>
-          <View style={styles.difficultyContainer}>
-            {['easy', 'medium', 'hard'].map((diff) => (
-              <TouchableOpacity
-                key={diff}
-                style={[
-                  styles.difficultyBtn,
-                  selectedDifficulty === diff && styles.difficultyBtnActive
-                ]}
-                onPress={() => setSelectedDifficulty(diff)}
-              >
-                <Text style={[
-                  styles.difficultyText,
-                  selectedDifficulty === diff && styles.difficultyTextActive
-                ]}>
-                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.header}>
+          <Ionicons name="trophy" size={80} color={getTrophyColor()} />
+          <Text style={styles.title}>Session Complete!</Text>
+          <Text style={styles.subtitle}>
+            Great job practicing your {skillTitle}
+          </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI Recommended Practice</Text>
-          <Card 
-            style={styles.recommendationCard}
-            onPress={() => navigation.navigate('TopicSelection', { 
-              skill: 'grammar', 
-              difficulty: selectedDifficulty 
-            })}
-          >
-            <View style={styles.recIconContainer}>
-              <Ionicons name="sparkles" size={24} color={COLORS.warning} />
-            </View>
-            <View style={styles.recContent}>
-              <Text style={styles.recTitle}>Review Past & Present Tenses</Text>
-              <Text style={styles.recDesc}>Personalized for your learning level</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-          </Card>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Choose a Skill to Practice</Text>
-          <View style={styles.grid}>
-            {practiceTopics.map((topic) => (
-              <Card 
-                key={topic.id} 
-                style={styles.card} 
-                onPress={() => handleTopicSelect(topic.id)}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${topic.color}20` }]}>
-                  <Ionicons name={topic.icon} size={32} color={topic.color} />
-                </View>
-                <Text style={styles.cardTitle}>{topic.title}</Text>
-                <Text style={styles.cardDesc}>{topic.description}</Text>
-              </Card>
-            ))}
+        <Card style={styles.statsCard}>
+          <View style={styles.tagsContainer}>
+            <Badge text={skillTitle} variant="info" />
+            <View style={{ width: 8 }} />
+            <Badge text={difficulty || "medium"} variant="warning" />
           </View>
-        </View>
+
+          <Text style={styles.topicName}>{topic || "Practice Session"}</Text>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{percentage}%</Text>
+              <Text style={styles.statLabel}>Score</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>
+                {safeScore.correct}/{safeScore.total}
+              </Text>
+              <Text style={styles.statLabel}>Correct</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{duration || "—"}</Text>
+              <Text style={styles.statLabel}>Time</Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card style={styles.xpCard}>
+          <View style={styles.xpHeader}>
+            <Ionicons name="flame" size={24} color={COLORS.warning} />
+            <Text style={styles.xpTitle}>+50 XP Earned</Text>
+          </View>
+          <Text style={styles.xpDesc}>
+            Keep practicing daily to build your streak and unlock bonus XP.
+          </Text>
+        </Card>
+
+        <Card style={styles.nextCard} onPress={goToPractice}>
+          <View style={styles.nextRow}>
+            <View style={styles.nextIcon}>
+              <Ionicons name="refresh" size={22} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nextTitle}>Practice another skill</Text>
+              <Text style={styles.nextDesc}>
+                Pick a new topic and keep the momentum going
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={COLORS.textLight}
+            />
+          </View>
+        </Card>
+
+        <Card
+          style={styles.nextCard}
+          onPress={() => navigation.navigate("History")}
+        >
+          <View style={styles.nextRow}>
+            <View style={styles.nextIcon}>
+              <Ionicons name="time" size={22} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nextTitle}>Review your history</Text>
+              <Text style={styles.nextDesc}>
+                See all past practice sessions and detailed feedback
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={COLORS.textLight}
+            />
+          </View>
+        </Card>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Button title="Back to Dashboard" onPress={goToDashboard} fullWidth />
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    padding: SPACING.base,
-    paddingBottom: SPACING.xxl,
-  },
-  section: {
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: { padding: SPACING.xl, paddingBottom: SPACING.base },
+  header: {
+    alignItems: "center",
     marginBottom: SPACING.xl,
+    marginTop: SPACING.base,
   },
-  sectionTitle: {
-    ...FONTS.h4,
+  title: {
+    ...FONTS.h1,
     color: COLORS.text,
+    marginTop: SPACING.base,
+    marginBottom: SPACING.xs,
+  },
+  subtitle: { ...FONTS.regular, color: COLORS.textSecondary },
+  statsCard: { marginBottom: SPACING.base, padding: SPACING.xl },
+  tagsContainer: { flexDirection: "row", marginBottom: SPACING.sm },
+  topicName: { ...FONTS.h3, color: COLORS.text, marginBottom: SPACING.xl },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statItem: { flex: 1, alignItems: "center" },
+  statValue: { ...FONTS.h2, color: COLORS.primaryDark, marginBottom: 4 },
+  statLabel: { ...FONTS.small, color: COLORS.textSecondary },
+  statDivider: { width: 1, height: 40, backgroundColor: COLORS.border },
+  xpCard: {
+    backgroundColor: COLORS.warningLight,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    marginBottom: SPACING.base,
+  },
+  xpHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: SPACING.sm,
   },
-  difficultyContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
+  xpTitle: { ...FONTS.h4, color: "#B45309", marginLeft: SPACING.sm },
+  xpDesc: { ...FONTS.small, color: "#92400E" },
+  nextCard: { marginBottom: SPACING.base },
+  nextRow: { flexDirection: "row", alignItems: "center" },
+  nextIcon: {
+    width: 44,
+    height: 44,
     borderRadius: RADIUS.full,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  difficultyBtn: {
-    flex: 1,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-    borderRadius: RADIUS.full,
-  },
-  difficultyBtnActive: {
     backgroundColor: COLORS.primaryLight,
-  },
-  difficultyText: {
-    ...FONTS.small,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  difficultyTextActive: {
-    color: COLORS.primaryDark,
-  },
-  recommendationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.base,
-  },
-  recIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.warningLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: SPACING.base,
   },
-  recContent: {
-    flex: 1,
-  },
-  recTitle: {
-    ...FONTS.regular,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  recDesc: {
-    ...FONTS.small,
-    color: COLORS.textSecondary,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  card: {
-    width: '48%',
-    padding: SPACING.base,
-    alignItems: 'center',
-    marginBottom: SPACING.base,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.base,
-  },
-  cardTitle: {
-    ...FONTS.h4,
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-  },
-  cardDesc: {
-    ...FONTS.small,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+  nextTitle: { ...FONTS.h4, color: COLORS.text },
+  nextDesc: { ...FONTS.small, color: COLORS.textSecondary, marginTop: 2 },
+  footer: {
+    padding: SPACING.xl,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
 });
 
-export default PracticeScreen;
+export default SessionSummaryScreen;

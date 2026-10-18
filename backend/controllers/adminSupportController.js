@@ -140,7 +140,7 @@ exports.getSupportNotifications = async (req, res, next) => {
       .select('userId moderationFlag createdAt').lean();
     flagged.forEach((report) => {
       const name = report.userId ? `${report.userId.firstName} ${report.userId.lastName}`.trim() : 'A learner';
-      items.push({ itemId: report._id, kind: 'moderation_report', name, preview: 'Tutor prompt flagged for review', at: report.createdAt });
+      items.push({ itemId: report._id, kind: 'moderation_report', name, preview: `Flagged: ${report.moderationFlag.replaceAll('_', ' ')}`, at: report.createdAt });
     });
     items.sort((a, b) => new Date(b.at) - new Date(a.at));
     sendSuccess(res, { count: items.length, items: items.slice(0, 10) }, 'Notifications retrieved');

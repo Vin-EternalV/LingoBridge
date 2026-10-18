@@ -5,6 +5,7 @@ const AIInteraction = require("../models/AIInteraction");
 const LearningProfile = require("../models/LearningProfile");
 const SurveyResponse = require("../models/SurveyResponse"); // NEW
 const User = require("../models/User");
+const { detectPromptModerationCategory } = require('../utils/promptModeration');
 const { sendSuccess, sendError } = require("../utils/responseHelper");
 
 const SKILLS = ["grammar", "vocabulary", "reading", "speaking", "writing"];
@@ -24,9 +25,7 @@ exports.chat = async (req, res, next) => {
       );
     }
 
-    const moderationFlag = /\b(?:developer\s+mode|jailbreak|prompt\s+injection)\b|\b(?:ignore|disregard|forget|override|bypass|reveal|repeat)\b[\s\S]{0,80}\b(?:system|developer|previous|prior|above|instructions?|rules?|prompt|policy)\b|\b(?:act|pretend|role[ -]?play)\s+(?:as|to be)\b|\b(?:css|html|javascript|typescript|python|java|react|node\.?js|sql|programming|coding)\b|\b(?:write|generate|debug|build|fix)\b.{0,50}\b(?:code|script|website|stylesheet|app)\b/i.test(message)
-      ? 'off_topic_or_prompt_abuse'
-      : null;
+    const moderationFlag = detectPromptModerationCategory(message);
 
     const [account, learningProfile] = await Promise.all([
       User.findById(req.user.id).select("nativeLanguage"),

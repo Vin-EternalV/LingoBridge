@@ -76,6 +76,7 @@ const ReportsScreen = () => {
           {moderationReports.length === 0 ? <Text style={styles.muted}>No flagged prompts.</Text> : moderationReports.map((report) => (
             <View key={report._id} style={styles.reportItem}>
               <Text style={styles.reportName}>{report.userId ? `${report.userId.firstName} ${report.userId.lastName} · ${report.userId.email}` : 'Deleted learner'}</Text>
+              <Text style={styles.reportCategory}>{({ code_or_prompt_abuse: 'Coding or prompt abuse', sexual_content: 'Sexual content', violence: 'Violence', vulgar_or_gross_content: 'Vulgar or gross content' })[report.moderationFlag] || 'Prompt flagged for review'}</Text>
               <Text style={styles.muted}>{new Date(report.createdAt).toLocaleString()}</Text>
               <Text style={styles.reportPrompt}>{report.prompt}</Text>
             </View>
@@ -97,6 +98,7 @@ const styles = StyleSheet.create({
   muted: { ...FONTS.small, color: COLORS.textSecondary, marginBottom: SPACING.sm },
   reportItem: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: SPACING.md },
   reportName: { ...FONTS.small, fontWeight: '600', color: COLORS.text },
+  reportCategory: { ...FONTS.small, color: COLORS.error, fontWeight: '600', marginTop: SPACING.xs },
   reportPrompt: { ...FONTS.regular, color: COLORS.text, marginTop: SPACING.xs },
 });
 

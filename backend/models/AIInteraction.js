@@ -34,7 +34,7 @@ const aiInteractionSchema = new Schema({
   },
   moderationFlag: {
     type: String,
-    enum: ['off_topic_or_prompt_abuse', null],
+    enum: ['code_or_prompt_abuse', 'sexual_content', 'violence', 'vulgar_or_gross_content', null],
     default: null
   },
   moderationAdminSeenAt: { type: Date, default: null }

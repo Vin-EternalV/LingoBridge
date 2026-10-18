@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.base,
     alignItems: 'flex-end',
     maxWidth: '85%',
+    minWidth: 0,
   },
   userContainer: {
     alignSelf: 'flex-end',
@@ -49,6 +50,9 @@ const styles = StyleSheet.create({
   bubble: {
     padding: SPACING.base,
     borderRadius: RADIUS.lg,
+    maxWidth: '100%',
+    minWidth: 0,
+    flexShrink: 1,
   },
   userBubble: {
     backgroundColor: COLORS.primary,
@@ -63,6 +67,9 @@ const styles = StyleSheet.create({
   text: {
     ...FONTS.regular,
     lineHeight: 22,
+    minWidth: 0,
+    flexShrink: 1,
+    ...(typeof document !== 'undefined' ? { overflowWrap: 'anywhere' } : {}),
   },
   userText: {
     color: COLORS.onPrimary,

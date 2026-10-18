@@ -37,11 +37,19 @@ const ExerciseScreen = ({ route, navigation }) => {
   const [secondsLeft, setSecondsLeft] = useState(timeLimit);
 
   useEffect(() => {
-    setSecondsLeft(timeLimit);
     if (!exercise) return undefined;
     const timer = setInterval(() => setSecondsLeft((remaining) => Math.max(0, remaining - 1)), 1000);
     return () => clearInterval(timer);
   }, [currentIndex, exercises.length, timeLimit, loading]);
+
+  // A timeout leaves the previous question in its submitting state. Reset all
+  // per-question state when Feedback advances back to this screen.
+  useEffect(() => {
+    setUserAnswer("");
+    setSubmitting(false);
+    setError("");
+    setSecondsLeft(timeLimit);
+  }, [currentIndex, timeLimit]);
 
   useEffect(() => {
     if (secondsLeft === 0 && exercise && !submitting) {

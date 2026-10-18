@@ -1,0 +1,212 @@
+const User = require('../models/User');
+const PracticeSession = require('../models/PracticeSession');
+const AIInteraction = require('../models/AIInteraction');
+const LearningContent = require('../models/LearningContent');
+const AuditLog = require('../models/AuditLog');
+const { sendSuccess, sendError, sendPaginated } = require('../utils/responseHelper');
+
+const createAuditLog = async (req, action, target, targetId, details) => {
+  try {
+    await AuditLog.create({
+      adminId: req.user.id,
+      adminName: `${req.user.firstName} ${req.user.lastName}`,
+      action,
+      target,
+      targetId,
+      details,
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Audit Log Error:', error);
+  }
+};
+
+exports.getDashboardStats = async (req, res, next) => {
+  try {
+    const since = new Date();
+    since.setUTCHours(0, 0, 0, 0);
+    since.setUTCDate(since.getUTCDate() - 6);
+    const [totalUsers, activeLearners, totalPracticeSessions, totalAIInteractions, topSkills, sessionTrend, sessionStatuses] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isActive: true, role: 'learner' }),
+      PracticeSession.countDocuments(),
+      AIInteraction.countDocuments(),
+      PracticeSession.aggregate([
+        { $group: { _id: '$skill', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 }
+      ]),
+      PracticeSession.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      PracticeSession.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
+    ]);
+    
+    sendSuccess(res, {
+      totalUsers,
+      activeLearners,
+      totalPracticeSessions,
+      totalAIInteractions,
+      topSkills: topSkills.map(s => ({ skill: s._id, count: s.count })),
+      sessionTrend,
+      sessionStatuses: Object.fromEntries(sessionStatuses.map(({ _id, count }) => [_id, count]))
+    }, 'Dashboard stats retrieved');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getUsers = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    
+    let query = {};
+    if (req.query.role) query.role = req.query.role;
+    if (req.query.isActive !== undefined) query.isActive = req.query.isActive === 'true';
+    if (req.query.search) {
+      const searchRegex = new RegExp(String(req.query.search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [{ firstName: searchRegex }, { lastName: searchRegex }, { email: searchRegex }];
+    }
+    
+    const total = await User.countDocuments(query);
+    const users = await User.find(query).skip(startIndex).limit(limit).sort('-createdAt');
+    
+    sendPaginated(res, users, page, limit, total);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PUT /api/admin/users/:id/status   { isActive?: boolean }
+// Who can change whose status:
+//   - nobody can change their own status
+//   - superadmin accounts can never be disabled from here
+//   - an admin can manage learners only
+//   - a superadmin can manage learners and admins
+exports.toggleUserStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return sendError(res, 'User not found', 404);
+
+    if (String(user._id) === String(req.user._id)) {
+      return sendError(res, "You can't change your own account status", 400);
+    }
+    if (user.role === 'superadmin') {
+      return sendError(res, 'Superadmin accounts cannot be disabled', 403);
+    }
+    if (user.role === 'admin' && req.user.role !== 'superadmin') {
+      return sendError(res, 'Only a superadmin can change an admin account', 403);
+    }
+
+    // Use the status the app asked for if it sent one, otherwise flip it.
+    const next = typeof req.body.isActive === 'boolean' ? req.body.isActive : !user.isActive;
+    user.isActive = next;
+    if (!next) user.tokenVersion = (user.tokenVersion || 0) + 1; // signs them out on every device
+    await user.save({ validateBeforeSave: false });
+
+    await createAuditLog(req, 'toggle_user_status', 'User', user._id, { newStatus: user.isActive });
+
+    sendSuccess(res, user, `User status updated to ${user.isActive ? 'active' : 'inactive'}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getContent = async (req, res, next) => {
+  try {
+    const content = await LearningContent.find().sort('order');
+    sendSuccess(res, content, 'Content retrieved');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.createContent = async (req, res, next) => {
+  try {
+    const content = await LearningContent.create(req.body);
+    await createAuditLog(req, 'create_content', 'LearningContent', content._id, { topic: content.topic });
+    sendSuccess(res, content, 'Content created', 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateContent = async (req, res, next) => {
+  try {
+    const content = await LearningContent.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!content) return sendError(res, 'Content not found', 404);
+    await createAuditLog(req, 'update_content', 'LearningContent', content._id, { topic: content.topic });
+    sendSuccess(res, content, 'Content updated');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.deleteContent = async (req, res, next) => {
+  try {
+    const content = await LearningContent.findById(req.params.id);
+    if (!content) return sendError(res, 'Content not found', 404);
+    await content.deleteOne();
+    await createAuditLog(req, 'delete_content', 'LearningContent', req.params.id, { topic: content.topic });
+    sendSuccess(res, null, 'Content deleted');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getAIActivityStats = async (req, res, next) => {
+  try {
+    const stats = await AIInteraction.aggregate([
+      { $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+          successful: { $sum: { $cond: ['$success', 1, 0] } }
+        }
+      }
+    ]);
+    const byType = Object.fromEntries(stats.map(item => [item._id, item]));
+    const total = stats.reduce((sum, item) => sum + item.count, 0);
+    const successful = stats.reduce((sum, item) => sum + item.successful, 0);
+    sendSuccess(res, {
+      totalExercisesGenerated: byType.exercise_generation?.count || 0,
+      totalEvaluations: byType.feedback?.count || 0,
+      totalChatInteractions: byType.assistant_chat?.count || 0,
+      successRate: total ? Math.round((successful / total) * 1000) / 10 : 0,
+      byType: stats
+    }, 'AI Activity Stats retrieved');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getReports = async (req, res, next) => {
+  try {
+    const since = new Date();
+    since.setUTCHours(0, 0, 0, 0);
+    since.setUTCDate(since.getUTCDate() - 29);
+    const [completedSessions, duration, skillDistribution, sessionTrend] = await Promise.all([
+      PracticeSession.countDocuments({ status: 'completed' }),
+      PracticeSession.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: null, averageDuration: { $avg: '$duration' }, averageAccuracy: { $avg: '$accuracy' } } }]),
+      PracticeSession.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: '$skill', sessions: { $sum: 1 }, averageAccuracy: { $avg: '$accuracy' } } }, { $sort: { sessions: -1 } }]),
+      PracticeSession.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: since } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' } }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ])
+    ]);
+    const reports = {
+      completedSessions: completedSessions.length,
+      averagePracticeDuration: Math.round(duration[0]?.averageDuration || 0),
+      averageAccuracy: Math.round(duration[0]?.averageAccuracy || 0),
+      skillDistribution,
+      sessionTrend
+    };
+    sendSuccess(res, reports, 'Reports retrieved');
+  } catch (err) {
+    next(err);
+  }
+};

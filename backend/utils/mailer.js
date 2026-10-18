@@ -107,7 +107,9 @@ exports.sendOtpCode = async (to, code, purpose) => {
     await transporter.sendMail({ from: process.env.SMTP_FROM || "no-reply@lingobridge.local", ...message });
   } catch (err) {
     console.error("Failed to send verification email:", err.message);
-    if (isProd) throw err;
-    console.log(`[EMAIL FAILED] ${purpose} code for ${to}: ${code}`);
+    // If an API key is configured, treat provider rejection as a real failure
+    // in every environment. Never log the OTP when delivery fails.
+    if (process.env.RESEND_API_KEY || isProd) throw err;
+    console.log(`[EMAIL FAILED] ${purpose} code delivery failed`);
   }
 };

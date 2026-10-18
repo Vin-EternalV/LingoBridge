@@ -25,6 +25,10 @@ connectDB();
 
 const app = express();
 
+// Render sits behind one trusted proxy. This lets express-rate-limit use the
+// forwarded client IP instead of treating every request as the proxy itself.
+app.set("trust proxy", 1);
+
 app.use(
   helmet({
     contentSecurityPolicy: false,

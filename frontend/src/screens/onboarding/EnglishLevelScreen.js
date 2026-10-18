@@ -5,11 +5,9 @@ import ProgressBar from '../../components/ProgressBar';
 import { COLORS, FONTS, RADIUS, SPACING } from '../../constants/theme';
 
 const levels = [
-  { id: 'beginner', title: 'Beginner', description: "I'm just starting to learn English" },
-  { id: 'elementary', title: 'Elementary', description: "I know basic words and phrases" },
-  { id: 'intermediate', title: 'Intermediate', description: "I can have simple conversations" },
-  { id: 'upper_intermediate', title: 'Upper Intermediate', description: "I'm fairly comfortable with English" },
-  { id: 'advanced', title: 'Advanced', description: "I'm fluent but want to improve" },
+  { id: 'beginner', title: 'Easy / Beginner', description: 'Start with the basics and unlock Intermediate after 20 sessions.' },
+  { id: 'intermediate', title: 'Intermediate', description: 'Choose this starting placement and unlock Advanced after 40 sessions.' },
+  { id: 'advanced', title: 'Advanced', description: 'Choose this starting placement; IELTS still requires age and identity verification.' },
 ];
 
 const EnglishLevelScreen = ({ navigation }) => {
@@ -29,7 +27,7 @@ const EnglishLevelScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>What's your English level?</Text>
-          <Text style={styles.description}>This helps us personalize your learning experience.</Text>
+          <Text style={styles.description}>Choose your starting placement. It locks after setup; completing sessions unlocks the next level.</Text>
         </View>
 
         <View style={styles.optionsContainer}>

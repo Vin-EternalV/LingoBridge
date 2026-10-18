@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const SupportTicket = require('../models/SupportTicket');
 const User = require('../models/User');
+const LearningProfile = require('../models/LearningProfile');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
 
 const MAX_REPLIES = 100;
@@ -79,10 +80,14 @@ exports.replyToTicket = async (req, res, next) => {
 // GET /api/support/notifications - support replies the learner has not opened yet
 exports.getNotifications = async (req, res, next) => {
   try {
-    const tickets = await SupportTicket.find({ userId: req.user.id, 'replies.0': { $exists: true } })
+    const [tickets, profile] = await Promise.all([
+      SupportTicket.find({ userId: req.user.id, 'replies.0': { $exists: true } })
       .sort('-updatedAt')
       .limit(50)
-      .select({ subject: 1, learnerSeenAt: 1, replies: { $slice: -1 } }); // only the newest reply of each
+      .select({ subject: 1, learnerSeenAt: 1, replies: { $slice: -1 } }), // only the newest reply of each
+      LearningProfile.findOne({ userId: req.user.id })
+        .select('identityVerification.status identityVerification.reviewedAt identityVerification.learnerSeenAt').lean(),
+    ]);
 
     const items = [];
     tickets.forEach((ticket) => {
@@ -97,12 +102,34 @@ exports.getNotifications = async (req, res, next) => {
         at: last.createdAt
       });
     });
+    const verification = profile?.identityVerification;
+    if (['verified', 'rejected'].includes(verification?.status) && verification.reviewedAt &&
+      (!verification.learnerSeenAt || verification.learnerSeenAt < verification.reviewedAt)) {
+      items.push({
+        userId: req.user.id,
+        kind: 'identity_verification_result',
+        status: verification.status,
+        subject: 'Identity verification update',
+        at: verification.reviewedAt,
+      });
+    }
     items.sort((a, b) => new Date(b.at) - new Date(a.at));
 
     sendSuccess(res, { count: items.length, items: items.slice(0, 10) }, 'Notifications retrieved');
   } catch (err) {
     next(err);
   }
+};
+
+exports.markIdentityVerificationSeen = async (req, res, next) => {
+  try {
+    await LearningProfile.updateOne(
+      { userId: req.user.id, 'identityVerification.status': { $in: ['verified', 'rejected'] } },
+      { $set: { 'identityVerification.learnerSeenAt': new Date() } },
+      { timestamps: false }
+    );
+    sendSuccess(res, {}, 'Identity verification update marked as read');
+  } catch (err) { next(err); }
 };
 
 // POST /api/support/:id/seen - the learner opened the request

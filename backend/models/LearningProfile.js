@@ -11,6 +11,26 @@ const learningProfileSchema = new mongoose.Schema({
     type: String,
     enum: ['beginner', 'elementary', 'intermediate', 'upper_intermediate', 'advanced']
   },
+  startingEnglishLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
+  currentEnglishLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
+  levelProgress: {
+    beginner: { grammar: { type: Number, default: 0 }, vocabulary: { type: Number, default: 0 }, reading: { type: Number, default: 0 }, writing: { type: Number, default: 0 }, speaking: { type: Number, default: 0 } },
+    intermediate: { grammar: { type: Number, default: 0 }, vocabulary: { type: Number, default: 0 }, reading: { type: Number, default: 0 }, writing: { type: Number, default: 0 }, speaking: { type: Number, default: 0 } },
+    advanced: { grammar: { type: Number, default: 0 }, vocabulary: { type: Number, default: 0 }, reading: { type: Number, default: 0 }, writing: { type: Number, default: 0 }, speaking: { type: Number, default: 0 } },
+  },
+  beginnerCompletedAt: Date,
+  intermediateCompletedAt: Date,
+  identityVerification: {
+    status: { type: String, enum: ['not_requested', 'pending', 'verified', 'rejected'], default: 'not_requested' },
+    requestedAt: Date,
+    reviewedAt: Date,
+    adminSeenAt: Date,
+    learnerSeenAt: Date,
+    // Storage key and MIME type are intentionally excluded from normal profile queries.
+    documentKey: { type: String, select: false },
+    documentMimeType: { type: String, select: false, enum: ['image/jpeg', 'image/png', 'image/webp'] },
+    documentUploadedAt: Date,
+  },
   learningGoals: [{
     type: String
   }],

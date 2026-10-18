@@ -58,7 +58,16 @@ const registerValidation = [
   nameValidation('firstName', 'First name'),
   nameValidation('lastName', 'Last name'),
   emailValidation('email', true),
-  newPasswordValidation()
+  newPasswordValidation(),
+  check('dateOfBirth', 'Date of birth is required').exists().bail().isString().bail()
+    .matches(/^\d{4}-\d{2}-\d{2}$/).bail()
+    .custom(value => {
+      const [year, month, day] = value.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day && date <= new Date();
+    }).withMessage('Enter a valid date of birth'),
+  check('phone', 'Enter a valid phone number (digits, spaces, + - and brackets only)').optional({ values: 'falsy' }).trim().matches(/^\+?[\d\s\-()]{7,20}$/),
+  check('phone', 'Phone number must be 20 characters or fewer').optional({ values: 'falsy' }).isLength({ max: 20 })
 ];
 
 const loginValidation = [
@@ -76,7 +85,7 @@ const resetPasswordValidation = [
 ];
 
 const onboardingValidation = [
-  check('englishLevel', 'English level is required').not().isEmpty()
+  check('englishLevel', 'Please choose Beginner, Intermediate or Advanced').isIn(['beginner', 'intermediate', 'advanced'])
 ];
 
 const profileUpdateValidation = [

@@ -21,6 +21,9 @@ const practiceSessionSchema = new Schema({
     enum: ['easy', 'medium', 'hard'],
     default: 'medium'
   },
+  levelAtStart: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
+  serverValidated: { type: Boolean, default: false },
+  progressionCounted: { type: Boolean, default: false },
   exercises: [{
     exerciseData: Schema.Types.Mixed,
     userAnswer: Schema.Types.Mixed,

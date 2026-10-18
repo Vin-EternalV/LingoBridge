@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 import { AREAS } from "../../constants/learningOptions";
+import { useAuth } from '../../contexts/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 const SKILL_ICONS = {
   grammar: "book",
@@ -22,8 +24,16 @@ const SKILL_COLORS = {
 };
 
 const PracticeScreen = ({ navigation }) => {
-  const start = (skill) =>
-    navigation.navigate("TopicSelection", { skill, difficulty: "medium" });
+  const { user, refreshUser } = useAuth();
+  useFocusEffect(useCallback(() => { refreshUser().catch(() => {}); }, []));
+  const profile = user?.profile;
+  const level = profile?.currentEnglishLevel || profile?.englishLevel;
+  const dob = user?.dateOfBirth ? new Date(user.dateOfBirth) : null;
+  const today = new Date();
+  const age = dob ? today.getFullYear() - dob.getFullYear() - (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate()) ? 1 : 0) : null;
+  const isAdult = age !== null && age >= 18;
+  const ieltsUnlocked = level === 'advanced' && profile?.identityVerification?.status === 'verified';
+  const start = (skill) => navigation.navigate("TopicSelection", { skill, difficulty: ({ beginner: 'easy', elementary: 'easy', intermediate: 'medium', upper_intermediate: 'medium', advanced: 'hard' })[level] || 'easy' });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -33,6 +43,76 @@ const PracticeScreen = ({ navigation }) => {
           Choose a skill to practise. We'll generate exercises tailored to your
           level.
         </Text>
+
+        {isAdult && !ieltsUnlocked && <Card style={styles.card} onPress={() => level === 'advanced' ? navigation.navigate('IeltsVerification') : navigation.navigate('LearningProgress')}>
+          <View style={[styles.icon, { backgroundColor: '#64748B20' }]}><Ionicons name="lock-closed" size={24} color={COLORS.textSecondary} /></View>
+          <View style={styles.text}><Text style={styles.title}>IELTS preparation · Locked</Text><Text style={styles.desc}>{level !== 'advanced' ? 'Reach Advanced English to unlock IELTS preparation.' : 'Verify your age and identity to access IELTS preparation.'}</Text></View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>}
+        {ieltsUnlocked && <>
+        <Card style={styles.card} onPress={() => navigation.navigate("IeltsListening")}>
+          <View style={[styles.icon, { backgroundColor: "#06B6D420" }]}>
+            <Ionicons name="headset" size={24} color="#0891B2" />
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.title}>IELTS Listening</Text>
+            <Text style={styles.desc}>Listen to an original practice recording, answer questions, and review your score.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>
+
+        <Card style={styles.card} onPress={() => navigation.navigate("IeltsReading")}>
+          <View style={[styles.icon, { backgroundColor: "#8B5CF620" }]}>
+            <Ionicons name="book" size={24} color="#8B5CF6" />
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.title}>IELTS Reading</Text>
+            <Text style={styles.desc}>
+              One passage, 13 questions in IELTS styles, marked instantly with explanations.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>
+
+        <Card style={styles.card} onPress={() => navigation.navigate("IeltsWriting")}>
+          <View style={[styles.icon, { backgroundColor: "#0EA5E920" }]}>
+            <Ionicons name="ribbon" size={24} color="#0EA5E9" />
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.title}>IELTS Writing</Text>
+            <Text style={styles.desc}>
+              Timed Task 1 and Task 2 practice, marked with an estimated band score.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>
+
+        <Card style={styles.card} onPress={() => navigation.navigate("IeltsSpeaking")}>
+          <View style={[styles.icon, { backgroundColor: "#14B8A620" }]}>
+            <Ionicons name="chatbubbles" size={24} color="#14B8A6" />
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.title}>IELTS Speaking</Text>
+            <Text style={styles.desc}>
+              Parts 1, 2 and 3 with a cue card, marked with an estimated band score.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>
+
+        <Card style={styles.card} onPress={() => navigation.navigate("IeltsProgress")}>
+          <View style={[styles.icon, { backgroundColor: "#F59E0B20" }]}>
+            <Ionicons name="stats-chart" size={24} color="#F59E0B" />
+          </View>
+          <View style={styles.text}>
+            <Text style={styles.title}>IELTS mock test and progress</Text>
+            <Text style={styles.desc}>
+              Take a timed mock test, set a target band and track your estimated score.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+        </Card>
+        </>}
 
         {AREAS.map((area) => (
           <Card

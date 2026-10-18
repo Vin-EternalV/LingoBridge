@@ -67,6 +67,10 @@ const startOtpStep = async (user, statusCode, res) => {
 exports.register = async (req, res, next) => {
   try {
     const { firstName, lastName, email, password } = req.body;
+    const registrationDetails = {
+      dateOfBirth: new Date(`${req.body.dateOfBirth}T00:00:00.000Z`),
+      phone: (req.body.phone || '').trim() || undefined,
+    };
 
     const existingUser = await User.findOne({
       email: (email || "").toLowerCase().trim(),
@@ -82,6 +86,7 @@ exports.register = async (req, res, next) => {
       existingUser.firstName = firstName;
       existingUser.lastName = lastName;
       existingUser.password = password;
+      Object.assign(existingUser, registrationDetails);
       await existingUser.save();
       user = existingUser;
     } else {
@@ -90,6 +95,7 @@ exports.register = async (req, res, next) => {
         lastName,
         email,
         password,
+        ...registrationDetails,
         emailVerified: !needsOtp({ email: (email || "").toLowerCase().trim() }),
       });
       await LearningProfile.create({ userId: user._id });

@@ -5,8 +5,8 @@ export const login = async (email, password) => {
   return response.data.data; // { token, user }  OR  { otpRequired, challenge, email, purpose, resendIn }
 };
 
-export const register = async (firstName, lastName, email, password) => {
-  const response = await post('/auth/register', { firstName, lastName, email, password });
+export const register = async (firstName, lastName, email, password, extra = {}) => {
+  const response = await post('/auth/register', { firstName, lastName, email, password, ...extra });
   return response.data.data; // { otpRequired, challenge, ... }  (or { token, user } when OTP is off)
 };
 

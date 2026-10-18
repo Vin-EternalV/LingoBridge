@@ -1,9 +1,7 @@
 // Same ids the onboarding screens use, so profile edits stay consistent with onboarding.
 export const LEVELS = [
-  { id: 'beginner', title: 'Beginner', description: "I'm just starting to learn English" },
-  { id: 'elementary', title: 'Elementary', description: 'I know basic words and phrases' },
+  { id: 'beginner', title: 'Easy / Beginner', description: 'Start with the basics' },
   { id: 'intermediate', title: 'Intermediate', description: 'I can have simple conversations' },
-  { id: 'upper_intermediate', title: 'Upper Intermediate', description: "I'm fairly comfortable with English" },
   { id: 'advanced', title: 'Advanced', description: "I'm fluent but want to improve" },
 ];
 

@@ -10,13 +10,17 @@ const {
   getAIActivityStats,
   getReports,
   suspendLearner,
-  getModerationReports
+  getModerationReports,
+  getIdentityVerifications,
+  reviewIdentityVerification,
+  getIdentityDocument,
 } = require('../controllers/adminController');
 const {
   getSupportTickets,
   updateSupportTicket,
   getSupportNotifications,
   markSupportNotificationSeen,
+  markIdentityVerificationNotificationSeen,
   markModerationNotificationSeen
 } = require('../controllers/adminSupportController');
 const { protect } = require('../middleware/auth');
@@ -32,6 +36,10 @@ router.get('/dashboard', getDashboardStats);
 router.get('/users', getUsers);
 router.put('/users/:id/status', toggleUserStatus);
 router.put('/users/:id/suspension', suspendLearner);
+router.get('/identity-verifications', getIdentityVerifications);
+router.post('/identity-verifications/:id/seen', markIdentityVerificationNotificationSeen);
+router.get('/users/:id/identity-document', getIdentityDocument);
+router.put('/users/:id/identity-verification', reviewIdentityVerification);
 
 router.get('/content', getContent);
 router.post('/content', createContent);

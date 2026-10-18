@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import * as usersApi from '../../api/users';
@@ -29,7 +29,7 @@ const LearningProfileScreen = () => {
 
   const applyProfile = (profile) => {
     const values = {
-      level: profile?.englishLevel || null,
+      level: ({ elementary: 'beginner', upper_intermediate: 'intermediate' })[profile?.currentEnglishLevel || profile?.englishLevel] || profile?.currentEnglishLevel || profile?.englishLevel || null,
       goals: profile?.learningGoals || [],
       areas: profile?.preferredAreas || [],
       difficulties: profile?.areasOfDifficulty || [],
@@ -60,8 +60,7 @@ const LearningProfileScreen = () => {
 
   const dirty =
     !!saved &&
-    (level !== saved.level ||
-      !sameSet(goals, saved.goals) ||
+    (!sameSet(goals, saved.goals) ||
       !sameSet(areas, saved.areas) ||
       !sameSet(difficulties, saved.difficulties));
 
@@ -70,7 +69,6 @@ const LearningProfileScreen = () => {
     setStatus(null);
     try {
       const profile = await usersApi.updateLearningProfile({
-        englishLevel: level || undefined,
         learningGoals: goals,
         preferredAreas: areas,
         areasOfDifficulty: difficulties,
@@ -112,40 +110,29 @@ const LearningProfileScreen = () => {
   return (
     <Screen title="Learning Profile">
       <Text style={styles.intro}>
-        Your answers here shape the practice topics and difficulty we recommend.
+      Your answers here shape practice recommendations. Complete sessions to unlock the next level.
       </Text>
 
       <StatusMessage type={status?.type} message={status?.message} />
 
       <SectionLabel>English level</SectionLabel>
       <View style={styles.levelList}>
-        {LEVELS.map((item, index) => {
-          const selected = level === item.id;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.levelRow, index > 0 && styles.levelDivider]}
-              onPress={() => {
-                setStatus(null);
-                setLevel(item.id);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-            >
-              <Ionicons
-                name={selected ? 'radio-button-on' : 'radio-button-off'}
-                size={22}
-                color={selected ? COLORS.primary : COLORS.textLight}
-              />
+        {(() => {
+          const currentIndex = LEVELS.findIndex((item) => item.id === level);
+          return LEVELS.map((item, index) => {
+            const selected = level === item.id;
+            const unlocked = currentIndex >= 0 && index <= currentIndex;
+            return <View key={item.id} style={[styles.levelRow, index > 0 && styles.levelDivider, !unlocked && styles.lockedLevel]}>
+              <Ionicons name={unlocked ? 'checkmark-circle' : 'lock-closed'} size={22} color={unlocked ? COLORS.primary : COLORS.textLight} />
               <View style={styles.levelText}>
-                <Text style={styles.levelTitle}>{item.title}</Text>
+                <Text style={styles.levelTitle}>{item.title}{selected ? ' · Current' : ''}</Text>
                 <Text style={styles.levelDesc}>{item.description}</Text>
               </View>
-            </TouchableOpacity>
-          );
-        })}
+            </View>;
+          });
+        })()}
       </View>
+      <Text style={styles.lockHint}>Your starting level is locked. Complete the required sessions in each skill to advance.</Text>
 
       <SectionLabel hint="Pick everything you want to work towards.">Learning goals</SectionLabel>
       {renderChips(GOALS, goals, setGoals)}
@@ -180,6 +167,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   levelRow: { flexDirection: 'row', alignItems: 'center', padding: SPACING.base },
+  lockedLevel: { opacity: 0.55 },
+  lockHint: { ...FONTS.small, color: COLORS.textSecondary, marginTop: SPACING.sm, marginBottom: SPACING.base },
   levelDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
   levelText: { marginLeft: SPACING.md, flex: 1 },
   levelTitle: { ...FONTS.regular, fontWeight: '600' },

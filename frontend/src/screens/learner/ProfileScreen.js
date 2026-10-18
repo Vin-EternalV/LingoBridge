@@ -91,6 +91,7 @@ const ProfileScreen = () => {
             title="Learning Profile" 
             onPress={() => navigation.navigate('LearningProfile')} 
           />
+          <SettingRow icon="trending-up-outline" title="Learning progression" onPress={() => navigation.navigate('LearningProgress')} />
           <SettingRow 
             icon="bar-chart-outline" 
             title="Goals & Progress" 
@@ -126,6 +127,11 @@ const ProfileScreen = () => {
             icon="shield-checkmark-outline" 
             title="Privacy & Security" 
             onPress={() => navigation.navigate('PrivacySecurity')} 
+          />
+          <SettingRow
+            icon="compass-outline"
+            title="App guide"
+            onPress={() => navigation.navigate('AppGuide')}
           />
         </SettingSection>
 

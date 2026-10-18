@@ -12,7 +12,12 @@ const {
   logoutAllDevices,
   exportData,
   clearAiHistory,
-  clearPracticeHistory
+  clearPracticeHistory,
+  markGuideSeen,
+  getLearningProgress,
+  requestIdentityVerification,
+  uploadIdentityDocument,
+  getVerificationStatus,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/auth');
 const {
@@ -38,6 +43,11 @@ router.put('/goals', validate(goalsValidation), updateGoals);
 router.get('/goals-progress', getGoalsProgress);
 router.put('/settings', validate(settingsValidation), updateSettings);
 router.put('/password', validate(passwordValidation), updatePassword);
+router.put('/guide-seen', markGuideSeen);
+router.get('/learning-progress', getLearningProgress);
+router.get('/identity-verification', getVerificationStatus);
+router.post('/identity-verification/document', uploadIdentityDocument);
+router.post('/identity-verification', requestIdentityVerification);
 router.post('/logout-all', logoutAllDevices);
 router.get('/export', exportData);
 router.delete('/me/ai-history', clearAiHistory);

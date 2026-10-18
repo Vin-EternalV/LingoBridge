@@ -13,6 +13,8 @@ const Input = React.forwardRef(({
   icon,
   multiline,
   style,
+  required,   // shows a red * after the label
+  optional,   // shows "(optional)" after the label
   ...props
 }, ref) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -20,7 +22,13 @@ const Input = React.forwardRef(({
 
   return (
     <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.requiredMark}> *</Text> : null}
+          {optional ? <Text style={styles.optionalMark}> (optional)</Text> : null}
+        </Text>
+      )}
       
       <View style={[
         styles.inputContainer,
@@ -81,6 +89,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: SPACING.xs,
     color: COLORS.text,
+  },
+  requiredMark: {
+    color: COLORS.error,
+    fontWeight: '700',
+  },
+  optionalMark: {
+    color: COLORS.textLight,
+    fontWeight: '400',
   },
   inputContainer: {
     flexDirection: 'row',

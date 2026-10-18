@@ -22,12 +22,8 @@ export const getLearningContent = async (skill) => {
   return response.data.data;
 };
 
-export const submitAnswer = async ({ exercise, userAnswer, learnerLevel }) => {
-  const response = await post("/practice/submit", {
-    exercise,
-    userAnswer,
-    learnerLevel,
-  });
+export const submitAnswer = async ({ sessionId, index, userAnswer }) => {
+  const response = await post(`/practice/sessions/${sessionId}/answer`, { index, userAnswer });
   return response.data.data;
 };
 

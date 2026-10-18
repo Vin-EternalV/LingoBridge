@@ -7,7 +7,7 @@ import Badge from "../../components/Badge";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
 const SessionSummaryScreen = ({ route, navigation }) => {
-  const { skill, topic, difficulty, scoreInfo, duration } = route.params || {};
+  const { skill, topic, difficulty, scoreInfo, duration, levelAdvanced } = route.params || {};
   const safeScore = scoreInfo || { correct: 0, total: 0 };
   const skillTitle =
     (skill || "practice").charAt(0).toUpperCase() +
@@ -69,6 +69,11 @@ const SessionSummaryScreen = ({ route, navigation }) => {
             </View>
           </View>
         </Card>
+
+        {levelAdvanced && <Card style={styles.levelUpCard}>
+          <View style={styles.xpHeader}><Ionicons name="trophy" size={24} color={COLORS.success} /><Text style={styles.levelUpTitle}>Level unlocked!</Text></View>
+          <Text style={styles.levelUpText}>Congratulations! You completed the required sessions across all five skills and unlocked the next English level.</Text>
+        </Card>}
 
         <Card style={styles.xpCard}>
           <View style={styles.xpHeader}>
@@ -162,6 +167,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.warning,
     marginBottom: SPACING.base,
   },
+  levelUpCard: { backgroundColor: COLORS.successLight, borderWidth: 1, borderColor: COLORS.success, marginBottom: SPACING.base },
+  levelUpTitle: { ...FONTS.h4, color: COLORS.success, marginLeft: SPACING.sm },
+  levelUpText: { ...FONTS.small, color: COLORS.text, lineHeight: 21 },
   xpHeader: {
     flexDirection: "row",
     alignItems: "center",

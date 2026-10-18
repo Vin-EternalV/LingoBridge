@@ -76,3 +76,28 @@ export const clearPracticeHistory = async () => {
   const response = await del('/users/me/practice-history');
   return response.data.data;
 };
+
+export const markGuideSeen = async () => {
+  const response = await put('/users/guide-seen');
+  return response.data;
+};
+
+export const getLearningProgress = async () => {
+  const response = await get('/users/learning-progress');
+  return response.data.data;
+};
+
+export const getIdentityVerification = async () => {
+  const response = await get('/users/identity-verification');
+  return response.data.data;
+};
+
+export const uploadIdentityDocument = async (base64, mimeType) => {
+  const response = await post('/users/identity-verification/document', { base64, mimeType });
+  return response.data.data;
+};
+
+export const requestIdentityVerification = async () => {
+  const response = await post('/users/identity-verification');
+  return response.data.data;
+};

@@ -26,3 +26,8 @@ export const markTicketSeen = async (id) => {
   const response = await post(`/support/${id}/seen`);
   return response.data.data;
 };
+
+export const markIdentityVerificationSeen = async () => {
+  const response = await post('/support/identity-verification/seen');
+  return response.data.data;
+};

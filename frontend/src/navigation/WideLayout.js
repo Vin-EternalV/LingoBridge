@@ -56,6 +56,7 @@ export const ADMIN_ICONS = {
   'AI Activity': ['sparkles', 'sparkles-outline'],
   Reports: ['stats-chart', 'stats-chart-outline'],
   Support: ['headset', 'headset-outline'],
+  'ID review': ['shield-checkmark', 'shield-outline'],
 };
 
 export const SUPERADMIN_ICONS = {
@@ -204,26 +205,36 @@ export const TopBar = ({ navigation }) => {
   }, [user?.role, loadNotifications]);
 
   const notificationTitle = (item) => {
+    if (!isStaff && item.kind === 'identity_verification_result') {
+      return item.status === 'verified' ? 'Your identity verification was approved' : 'Your identity verification was rejected';
+    }
     if (!isStaff) return `Support replied to “${item.subject}”`;
     if (item.kind === 'moderation_report') return `AI flagged a prompt from ${item.name}`;
+    if (item.kind === 'identity_verification') return `${item.name} submitted an ID verification request`;
     return item.kind === 'new_request' ? `New request from ${item.name}` : `${item.name} replied`;
   };
+
+  const notificationId = (item) => item.itemId || item.ticketId || item.userId;
 
   const openNotification = async (item) => {
     setNotifOpen(false);
     setNotif((current) => ({
       count: Math.max(0, current.count - 1),
-      items: current.items.filter((entry) => String(entry.itemId || entry.ticketId) !== String(item.itemId || item.ticketId)),
+      items: current.items.filter((entry) => String(notificationId(entry)) !== String(notificationId(item))),
     }));
     try {
       if (isStaff && item.kind === 'moderation_report') await adminApi.markModerationNotificationSeen(item.itemId);
+      else if (isStaff && item.kind === 'identity_verification') await adminApi.markIdentityVerificationNotificationSeen(item.userId);
       else if (isStaff) await adminApi.markSupportNotificationSeen(item.ticketId);
+      else if (item.kind === 'identity_verification_result') await supportApi.markIdentityVerificationSeen();
       else await supportApi.markTicketSeen(item.ticketId);
     } catch (e) {
       // Continue to the request even if marking it read fails.
     }
     await loadNotifications();
-    navigation.navigate(isStaff ? (item.kind === 'moderation_report' ? 'Reports' : 'Support') : 'HelpSupport');
+    navigation.navigate(isStaff
+      ? (item.kind === 'moderation_report' ? 'Reports' : item.kind === 'identity_verification' ? 'ID review' : 'Support')
+      : (item.kind === 'identity_verification_result' ? 'IeltsVerification' : 'HelpSupport'));
   };
 
   const initial = (user?.firstName || user?.email || '?').charAt(0).toUpperCase();
@@ -324,12 +335,12 @@ export const TopBar = ({ navigation }) => {
           ) : (
             notif.items.map((item) => (
               <TouchableOpacity
-                key={`${item.itemId || item.ticketId}-${item.at}`}
+                key={`${notificationId(item)}-${item.at}`}
                 style={styles.notifItem}
                 onPress={() => openNotification(item)}
                 accessibilityRole="button"
               >
-                <Ionicons name={item.kind === 'moderation_report' ? 'shield-outline' : 'chatbubble-ellipses-outline'} size={18} color={COLORS.primary} />
+                <Ionicons name={item.kind === 'moderation_report' ? 'shield-outline' : item.kind === 'identity_verification' || item.kind === 'identity_verification_result' ? 'document-text-outline' : 'chatbubble-ellipses-outline'} size={18} color={COLORS.primary} />
                 <View style={styles.notifBody}>
                   <Text style={styles.notifText} numberOfLines={2}>
                     {notificationTitle(item)}

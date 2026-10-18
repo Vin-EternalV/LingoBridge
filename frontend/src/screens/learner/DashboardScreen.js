@@ -11,6 +11,7 @@ import StatusMessage from "../../components/StatusMessage";
 import { getProgress, getHistory } from "../../api/progress";
 import { getSuggestions } from "../../api/ai";
 import { getMySurvey } from "../../api/survey";
+import * as usersApi from '../../api/users';
 import { getErrorMessage } from "../../utils/errors";
 import { timeAgo, currentStreak, titleCase } from "../../utils/format";
 import { getResumeSessionParams } from "../../utils/practiceSession";
@@ -56,14 +57,16 @@ const DashboardScreen = ({ navigation }) => {
   const [sessions, setSessions] = useState([]);
   const [suggestions, setSuggestions] = useState(null);
   const [hasSurvey, setHasSurvey] = useState(null);
+  const [learningProgress, setLearningProgress] = useState(null);
 
   // Each request is independent, so one failing (for example the AI suggestions) never blanks the page.
   const loadData = useCallback(async () => {
-    const [progressRes, historyRes, suggestionsRes, surveyRes] = await Promise.allSettled([
+    const [progressRes, historyRes, suggestionsRes, surveyRes, learningProgressRes] = await Promise.allSettled([
       getProgress(),
       getHistory({ limit: 50 }),
       getSuggestions(),
       getMySurvey(),
+      usersApi.getLearningProgress(),
     ]);
     refreshUser().catch(() => {}); // keeps the level shown below in step with Learning Profile edits
 
@@ -75,6 +78,7 @@ const DashboardScreen = ({ navigation }) => {
     } else if (surveyRes.reason?.response?.status === 404) {
       setHasSurvey(false); // 404 means "no survey submitted yet"; other errors keep the card hidden
     }
+    if (learningProgressRes.status === 'fulfilled') setLearningProgress(learningProgressRes.value);
 
     if (progressRes.status === "rejected" && historyRes.status === "rejected") {
       setError(getErrorMessage(progressRes.reason, "Could not load your dashboard."));
@@ -97,19 +101,23 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const profile = user?.profile;
-  const level = levelLabel(profile?.englishLevel);
+  const storedLevel = profile?.currentEnglishLevel || profile?.englishLevel;
+  const level = levelLabel(({ elementary: 'beginner', upper_intermediate: 'intermediate' })[storedLevel] || storedLevel);
   const streak = currentStreak(progress?.streak);
   const totalSessions = progress?.totalPracticeSessions || 0;
   const overallAccuracy = progress?.overallAccuracy || 0;
 
-  const startPractice = (skill, topic, difficulty = "medium") =>
-    navigation.navigate("Exercise", { skill, topic, difficulty });
+  const currentLevel = profile?.currentEnglishLevel || profile?.englishLevel;
+  const allowedDifficulties = currentLevel === 'advanced' ? ['easy', 'medium', 'hard'] : ['beginner', 'elementary'].includes(currentLevel) ? ['easy'] : ['easy', 'medium'];
+  const defaultDifficulty = allowedDifficulties[allowedDifficulties.length - 1];
+  const startPractice = (skill, topic, requestedDifficulty = defaultDifficulty) =>
+    navigation.navigate("Exercise", { skill, topic, difficulty: allowedDifficulties.includes(requestedDifficulty) ? requestedDifficulty : defaultDifficulty });
 
   const goToProgress = () => navigation.navigate("ProgressTab");
 
   // Resume an unfinished session first; completed sessions can be practiced again.
-  const lastSession = sessions[0];
-  const unfinishedSession = sessions.find((session) => session.status === "in_progress");
+  const lastSession = sessions.find((session) => session.status === 'completed');
+  const unfinishedSession = sessions.find((session) => session.status === "in_progress" && session.serverValidated);
   const reviewSkill = pickReviewSkill(progress, suggestions, profile);
   const continueAction = unfinishedSession
     ? {
@@ -126,7 +134,7 @@ const DashboardScreen = ({ navigation }) => {
     : {
         title: "Start Learning",
         desc: "Pick your first topic",
-        onPress: () => navigation.navigate("TopicSelection", { skill: reviewSkill, difficulty: "medium" }),
+        onPress: () => navigation.navigate("TopicSelection", { skill: reviewSkill, difficulty: defaultDifficulty }),
       };
 
   const quickTopic = dailyTopic(reviewSkill);
@@ -220,6 +228,21 @@ const DashboardScreen = ({ navigation }) => {
           </Text>
         </Card>
 
+        {learningProgress && <Card style={styles.levelProgressCard} onPress={() => navigation.navigate('LearningProgress')}>
+          <View style={styles.progressHeader}>
+            <View style={styles.learningTitleRow}><Ionicons name="school" size={19} color={COLORS.primary} /><Text style={styles.sectionTitle}>Learning level</Text></View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+          </View>
+          <Text style={styles.levelName}>{titleCase(learningProgress.currentLevel)}{learningProgress.currentLevel === 'beginner' ? ' · Easy' : ''}</Text>
+          {learningProgress.requiredSessions > 0 ? <>
+            <Text style={styles.progressCaption}>{learningProgress.completedSessions}/{learningProgress.requiredSessions} total sessions to the next level</Text>
+            <ProgressBar progress={learningProgress.completedSessions / learningProgress.requiredSessions} showLabel={false} height={8} />
+            <View style={styles.levelSkills}>
+              {learningProgress.skills?.map((item) => <Text key={item.id} style={styles.levelSkillText}>{titleCase(item.id)} {item.completed}/{item.required}</Text>)}
+            </View>
+          </> : <Text style={styles.progressCaption}>{learningProgress.ageEligible ? learningProgress.ieltsAccess ? 'Advanced level unlocked. IELTS preparation is available.' : 'Advanced level unlocked. Complete identity verification to access IELTS preparation.' : 'Advanced level unlocked. Keep practising to strengthen all five skills.'}</Text>}
+        </Card>}
+
         <View style={styles.actionCardsContainer}>
           <Card style={styles.actionCard} onPress={continueAction.onPress}>
             <View style={[styles.actionIcon, { backgroundColor: COLORS.primaryLight }]}>
@@ -259,7 +282,7 @@ const DashboardScreen = ({ navigation }) => {
                     key={skill}
                     skill={titleCase(skill)}
                     progress={accuracyOf(progress, skill) / 100}
-                    onPress={() => navigation.navigate("TopicSelection", { skill, difficulty: "medium" })}
+                    onPress={() => navigation.navigate("TopicSelection", { skill, difficulty: defaultDifficulty })}
                   />
                 ))}
               </View>
@@ -383,6 +406,11 @@ const styles = StyleSheet.create({
   recTitle: { ...FONTS.h4, color: COLORS.text },
   recDesc: { ...FONTS.small, color: COLORS.warningTextStrong, marginTop: 4 },
   progressCard: { marginBottom: SPACING.xl },
+  levelProgressCard: { marginTop: -SPACING.md, marginBottom: SPACING.xl },
+  learningTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  levelName: { ...FONTS.h4, marginBottom: 2 },
+  levelSkills: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginTop: SPACING.sm },
+  levelSkillText: { ...FONTS.tiny, backgroundColor: COLORS.background, paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: RADIUS.sm },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

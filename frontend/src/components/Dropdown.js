@@ -5,7 +5,7 @@ import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 // A drop-down that works the same on phones and the web: tap the field, pick from a searchable list.
 // options: array of strings. onChange(value) gets '' when the person chooses the "clear" row.
-const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', searchable = true, clearLabel }) => {
+const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', searchable = true, selectOnSubmit = false, autoFocusSearch = false, searchKeyboardType, clearLabel, required, optional, sheetTitle }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -24,6 +24,14 @@ const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', sea
     close();
   };
 
+  const submitSearch = (submittedQuery = query) => {
+    const normalizedQuery = (submittedQuery || '').trim().toLowerCase();
+    if (!normalizedQuery) return;
+    const exactMatch = options.find((option) => option.toLowerCase() === normalizedQuery);
+    const next = exactMatch || (filtered.length === 1 ? filtered[0] : null);
+    if (next) choose(next);
+  };
+
   const renderRow = (text, selected, onPress, muted) => (
     <TouchableOpacity
       style={styles.row}
@@ -39,13 +47,19 @@ const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', sea
 
   return (
     <View style={styles.wrapper}>
-      {!!label && <Text style={styles.label}>{label}</Text>}
+      {!!label && (
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.requiredMark}> *</Text> : null}
+          {optional ? <Text style={styles.optionalMark}> (optional)</Text> : null}
+        </Text>
+      )}
       <TouchableOpacity
         style={styles.field}
         onPress={() => setOpen(true)}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={`${label || 'Select'}: ${value || placeholder}`}
+        accessibilityLabel={`${sheetTitle || label || 'Select'}: ${value || placeholder}`}
       >
         <Text style={[styles.value, !value && styles.placeholder]} numberOfLines={1}>
           {value || placeholder}
@@ -58,7 +72,7 @@ const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', sea
           {/* The inner touchable swallows taps so only the dark area closes the list. */}
           <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{label || 'Select'}</Text>
+              <Text style={styles.sheetTitle}>{sheetTitle || label || 'Select'}</Text>
               <TouchableOpacity onPress={close} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={COLORS.textSecondary} />
               </TouchableOpacity>
@@ -69,10 +83,14 @@ const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', sea
                 style={styles.search}
                 value={query}
                 onChangeText={setQuery}
+                autoFocus={autoFocusSearch}
+                keyboardType={searchKeyboardType}
                 placeholder="Search..."
                 placeholderTextColor={COLORS.textLight}
                 autoCorrect={false}
                 autoCapitalize="none"
+                returnKeyType={selectOnSubmit ? 'done' : 'default'}
+                onSubmitEditing={selectOnSubmit ? ({ nativeEvent }) => submitSearch(nativeEvent.text) : undefined}
               />
             )}
 
@@ -97,6 +115,8 @@ const Dropdown = ({ label, value, options, onChange, placeholder = 'Select', sea
 const styles = StyleSheet.create({
   wrapper: { marginBottom: SPACING.base },
   label: { ...FONTS.small, fontWeight: '600', color: COLORS.text, marginBottom: SPACING.xs },
+  requiredMark: { color: COLORS.error, fontWeight: '700' },
+  optionalMark: { color: COLORS.textLight, fontWeight: '400' },
   field: {
     flexDirection: 'row',
     alignItems: 'center',

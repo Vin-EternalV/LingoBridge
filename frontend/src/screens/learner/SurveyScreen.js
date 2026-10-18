@@ -10,9 +10,9 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
+import Dropdown from "../../components/Dropdown";
 import ErrorMessage from "../../components/ErrorMessage";
 import { submitSurvey } from "../../api/survey";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
@@ -31,6 +31,14 @@ const FREQUENCIES = [
   { key: "weekly", label: "Weekly" },
   { key: "several_times_week", label: "Several times a week" },
   { key: "daily", label: "Daily" },
+];
+
+const DIFFICULTY_OPTIONS = [
+  "1 - Very easy",
+  "2 - Easy",
+  "3 - Moderate",
+  "4 - Hard",
+  "5 - Very hard",
 ];
 
 const SurveyScreen = ({ navigation }) => {
@@ -101,29 +109,14 @@ const SurveyScreen = ({ navigation }) => {
 
         {SKILLS.map(({ key, label }) => (
           <View key={key} style={styles.skillBlock}>
-            <Text style={styles.skillLabel}>{label}</Text>
-            <View style={styles.ratingRow}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <TouchableOpacity
-                  key={n}
-                  style={[
-                    styles.ratingBtn,
-                    difficulty[key] === n && styles.ratingBtnActive,
-                  ]}
-                  onPress={() => setSkillDifficulty(key, n)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.ratingText,
-                      difficulty[key] === n && styles.ratingTextActive,
-                    ]}
-                  >
-                    {n}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Dropdown
+              label={label}
+              value={DIFFICULTY_OPTIONS[difficulty[key] - 1]}
+              options={DIFFICULTY_OPTIONS}
+              onChange={(option) => setSkillDifficulty(key, Number(option[0]))}
+              searchable={false}
+              sheetTitle={`${label} difficulty`}
+            />
           </View>
         ))}
 
@@ -199,29 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     lineHeight: 22,
   },
-  skillBlock: { marginBottom: SPACING.base },
-  skillLabel: {
-    ...FONTS.h4,
-    color: COLORS.text,
-    marginBottom: SPACING.sm,
-  },
-  ratingRow: { flexDirection: "row", gap: SPACING.sm },
-  ratingBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: RADIUS.md,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ratingBtnActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
-  },
-  ratingText: { ...FONTS.h4, color: COLORS.textSecondary },
-  ratingTextActive: { color: COLORS.primaryDark, fontWeight: "bold" },
+  skillBlock: { marginBottom: SPACING.xs },
   sectionTitle: {
     ...FONTS.h4,
     color: COLORS.text,

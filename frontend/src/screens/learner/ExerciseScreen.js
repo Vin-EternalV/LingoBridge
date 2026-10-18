@@ -9,7 +9,6 @@ import { confirmAction } from "../../utils/dialog";
 import {
   generateExercises,
   submitAnswer,
-  createSession,
 } from "../../api/practice";
 import { COLORS, FONTS, SPACING } from "../../constants/theme";
 
@@ -57,11 +56,16 @@ const ExerciseScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (secondsLeft === 0 && exercise && !submitting) {
       setSubmitting(true);
-      navigation.navigate("Feedback", {
-        feedback: { isCorrect: false, score: 0, correctAnswer: exercise.correctAnswer, explanation: exercise.explanation || "Time ran out. Review this grammar point and try again.", whyIncorrect: "No answer was submitted before the timer ended.", example: "", suggestedImprovement: "", userAnswer: "Time expired", timedOut: true },
+      submitAnswer({ sessionId, index: currentIndex, userAnswer: 'Time expired' }).then((result) => navigation.navigate("Feedback", {
+        levelAdvanced: result.levelAdvanced,
+        feedback: { ...result.feedback, userAnswer: 'Time expired', timedOut: true },
         exercise, currentIndex, totalExercises: exercises.length, skill, topic, difficulty, exercises,
         sessionId, scoreInfo: scoreInfo || { correct: 0, total: 0 }, startedAt: questionStartedAt, answers,
         elapsedBefore,
+      })).catch((requestError) => {
+        setError(requestError.response?.data?.message || 'Could not save the timed answer. Please try again.');
+        setSecondsLeft(timeLimit);
+        setSubmitting(false);
       });
     }
   }, [secondsLeft]);
@@ -78,14 +82,8 @@ const ExerciseScreen = ({ route, navigation }) => {
           count: ({ easy: 5, medium: 8, hard: 10 })[String(difficulty || "medium").toLowerCase()] || 8,
         });
         const list = generated.exercises || generated;
-        const session = await createSession({
-          skill,
-          topic,
-          difficulty,
-          exercises: list,
-        });
         setExercises(list);
-        setSessionId(session._id);
+        setSessionId(generated.sessionId || savedSessionId);
       } catch (requestError) {
         setError(
           requestError.response?.data?.message ||
@@ -104,8 +102,10 @@ const ExerciseScreen = ({ route, navigation }) => {
     setError("");
     const exercise = exercises[currentIndex];
     try {
-      const feedback = await submitAnswer({ exercise, userAnswer });
+      const result = await submitAnswer({ sessionId, index: currentIndex, userAnswer });
+      const feedback = { ...result.feedback, userAnswer };
       navigation.navigate("Feedback", {
+        levelAdvanced: result.levelAdvanced,
         feedback: { ...feedback, userAnswer },
         exercise,
         currentIndex,

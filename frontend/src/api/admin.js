@@ -82,3 +82,23 @@ export const markSupportNotificationSeen = async (id) => {
   const response = await post(`/admin/support/${id}/seen`);
   return response.data.data;
 };
+
+export const markIdentityVerificationNotificationSeen = async (userId) => {
+  const response = await post(`/admin/identity-verifications/${userId}/seen`);
+  return response.data.data;
+};
+
+export const getIdentityVerifications = async () => {
+  const response = await get('/admin/identity-verifications');
+  return response.data.data;
+};
+
+export const getIdentityDocument = async (userId) => {
+  const response = await get(`/admin/users/${userId}/identity-document`);
+  return response.data.data;
+};
+
+export const reviewIdentityVerification = async (userId, status) => {
+  const response = await put(`/admin/users/${userId}/identity-verification`, { status });
+  return response.data.data;
+};

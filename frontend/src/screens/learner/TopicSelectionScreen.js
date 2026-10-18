@@ -8,13 +8,17 @@ import { TOPICS_BY_SKILL } from '../../constants/learningOptions';
 import * as practiceApi from '../../api/practice';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
+import { useAuth } from '../../contexts/AuthContext';
 
 
 const TopicSelectionScreen = ({ route, navigation }) => {
   const { skill, difficulty: initialDifficulty } = route.params;
+  const { user } = useAuth();
+  const level = user?.profile?.currentEnglishLevel || user?.profile?.englishLevel || 'beginner';
+  const unlocked = level === 'advanced' ? ['easy', 'medium', 'hard'] : level === 'intermediate' || level === 'upper_intermediate' ? ['easy', 'medium'] : ['easy'];
   const [selectedTopic, setSelectedTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
-  const [difficulty, setDifficulty] = useState(initialDifficulty || 'medium');
+  const [difficulty, setDifficulty] = useState(unlocked.includes(initialDifficulty) ? initialDifficulty : unlocked[unlocked.length - 1]);
   const [topics, setTopics] = useState(TOPICS_BY_SKILL[skill] || []);
   const [adminTopics, setAdminTopics] = useState(null);
   const [loadingTopics, setLoadingTopics] = useState(true);
@@ -74,24 +78,30 @@ const TopicSelectionScreen = ({ route, navigation }) => {
           <Text style={styles.sectionTitle}>Difficulty Level</Text>
           <View style={styles.difficultyContainer}>
             {['easy', 'medium', 'hard'].map((diff) => (
+              (() => { const isUnlocked = unlocked.includes(diff); return (
               <TouchableOpacity
                 key={diff}
                 style={[
                   styles.difficultyBtn,
                   difficulty === diff && styles.difficultyBtnActive
                 ]}
-                onPress={() => setDifficulty(diff)}
+                onPress={() => isUnlocked && setDifficulty(diff)}
+                disabled={!isUnlocked}
               >
+                {!isUnlocked && <Ionicons name="lock-closed" size={13} color={COLORS.textLight} />}
                 <Text style={[
                   styles.difficultyText,
-                  difficulty === diff && styles.difficultyTextActive
+                  difficulty === diff && styles.difficultyTextActive,
+                  !isUnlocked && styles.lockedDifficulty
                 ]}>
                   {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Text>
               </TouchableOpacity>
+              ); })()
             ))}
           </View>
         </View>
+        <Text style={styles.lockHint}>Complete all required sessions across the five skills to unlock the next difficulty.</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select a Topic</Text>
@@ -185,6 +195,8 @@ const styles = StyleSheet.create({
   difficultyTextActive: {
     color: COLORS.primaryDark,
   },
+  lockedDifficulty: { color: COLORS.textLight },
+  lockHint: { ...FONTS.tiny, marginTop: -SPACING.md, marginBottom: SPACING.xl },
   topicsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

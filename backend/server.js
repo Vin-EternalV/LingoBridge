@@ -19,6 +19,7 @@ const superadminRoutes = require("./routes/superadmin");
 const surveyRoutes = require("./routes/survey");
 const analyticsRoutes = require("./routes/analytics");
 const supportRoutes = require("./routes/support");
+const ieltsRoutes = require("./routes/ielts");
 
 dotenv.config();
 connectDB();
@@ -85,6 +86,7 @@ app.use("/api/super-admin", superadminRoutes);
 app.use("/api/survey", surveyRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/ielts", ieltsRoutes);
 
 app.use(errorHandler);
 

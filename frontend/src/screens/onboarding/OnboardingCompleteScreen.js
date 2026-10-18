@@ -17,7 +17,7 @@ const OnboardingCompleteScreen = ({ route }) => {
   const [error, setError] = useState("");
   const [finishing, setFinishing] = useState(false);
   const onboardingData = route.params;
-  const { updateUser, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
 
   // Save the answers to the backend, but DON'T flip the auth flag here —
   // we want the learner to actually see this screen before we navigate away.
@@ -30,9 +30,7 @@ const OnboardingCompleteScreen = ({ route }) => {
       } catch (err) {
         console.error(err);
         if (active) {
-          setError(
-            "Failed to save your preferences. You can try again or skip for now.",
-          );
+          setError("We couldn't save your preferences. Check your connection and retry.");
           setLoading(false);
         }
       }
@@ -47,21 +45,15 @@ const OnboardingCompleteScreen = ({ route }) => {
     if (finishing) return;
     setFinishing(true);
 
-    if (error) {
-      // Backend save failed — let the learner proceed anyway.
-      updateUser({ onboardingCompleted: true });
-      return;
-    }
-
     try {
+      if (error) await updateOnboarding(onboardingData);
       // Re-fetch the profile so `user.profile.onboardingComplete` reflects
       // what the backend actually stored. AppNavigator will switch over
       // the moment that flag becomes true.
       await refreshUser();
-      // Safety net in case the backend didn't persist the flag (older data).
-      updateUser({ onboardingCompleted: true });
     } catch (e) {
-      updateUser({ onboardingCompleted: true });
+      setError("Your preferences could not be confirmed. Please retry before continuing.");
+      setFinishing(false);
     }
   };
 
@@ -92,8 +84,7 @@ const OnboardingCompleteScreen = ({ route }) => {
 
           <Text style={styles.title}>You're all set!</Text>
           <Text style={styles.description}>
-            We've customized your curriculum based on your selections. You can
-            always change these settings later in your profile.
+            We've customized your curriculum based on your selections. Your starting level is locked; complete sessions to unlock higher levels.
           </Text>
 
           {error ? (
@@ -124,7 +115,7 @@ const OnboardingCompleteScreen = ({ route }) => {
 
         <View style={styles.footer}>
           <Button
-            title={error ? "Skip for now" : "Start Learning"}
+            title={error ? "Retry saving" : "Start Learning"}
             onPress={handleStart}
             loading={finishing}
             fullWidth

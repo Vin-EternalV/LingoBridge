@@ -5,7 +5,17 @@ const PracticeSession = require('../models/PracticeSession');
 const AIInteraction = require('../models/AIInteraction');
 const SurveyResponse = require('../models/SurveyResponse');
 const SupportTicket = require('../models/SupportTicket');
+const WritingSubmission = require('../models/WritingSubmission');
+const SpeakingSubmission = require('../models/SpeakingSubmission');
+const ReadingTest = require('../models/ReadingTest');
+const ListeningTest = require('../models/ListeningTest');
+const MockTest = require('../models/MockTest');
+const IeltsProfile = require('../models/IeltsProfile');
+const Otp = require('../models/Otp');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
+const audioStore = require('../services/audioStore');
+const { progressionView, ageOnDate } = require('../utils/learningProgression');
+const { saveDocument, removeDocument } = require('../utils/identityDocuments');
 
 // Existing sessions saved before the duration fix may hold inflated values,
 // so each session contributes at most this many minutes to goal progress.
@@ -87,18 +97,22 @@ exports.updateProfile = async (req, res, next) => {
 exports.updateOnboarding = async (req, res, next) => {
   try {
     const { englishLevel, learningGoals, preferredAreas, areasOfDifficulty } = req.body;
-
-    const profile = await LearningProfile.findOneAndUpdate(
-      { userId: req.user.id },
-      {
-        englishLevel,
-        learningGoals,
-        preferredAreas,
-        areasOfDifficulty,
-        onboardingComplete: true
-      },
-      { new: true, runValidators: true }
-    );
+    const profile = await LearningProfile.findOne({ userId: req.user.id });
+    if (!profile) return sendError(res, 'Learning profile not found', 404);
+    if (profile.onboardingComplete) {
+      if ((profile.startingEnglishLevel || profile.englishLevel) === englishLevel) {
+        return sendSuccess(res, profile, 'Onboarding already completed');
+      }
+      return sendError(res, 'Your starting English level is locked after setup.', 409);
+    }
+    profile.englishLevel = englishLevel;
+    profile.startingEnglishLevel = englishLevel;
+    profile.currentEnglishLevel = englishLevel;
+    profile.learningGoals = learningGoals;
+    profile.preferredAreas = preferredAreas;
+    profile.areasOfDifficulty = areasOfDifficulty;
+    profile.onboardingComplete = true;
+    await profile.save();
 
     sendSuccess(res, profile, 'Onboarding completed');
   } catch (err) {
@@ -110,9 +124,10 @@ exports.updateOnboarding = async (req, res, next) => {
 exports.updateLearningProfile = async (req, res, next) => {
   try {
     const update = {};
-    ['englishLevel', 'learningGoals', 'preferredAreas', 'areasOfDifficulty'].forEach((key) => {
+    ['learningGoals', 'preferredAreas', 'areasOfDifficulty'].forEach((key) => {
       if (req.body[key] !== undefined) update[key] = req.body[key];
     });
+    if (req.body.englishLevel !== undefined) return sendError(res, 'Your English level is locked. Complete sessions to advance.', 403);
 
     const profile = await LearningProfile.findOneAndUpdate(
       { userId: req.user.id },
@@ -124,6 +139,87 @@ exports.updateLearningProfile = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+exports.getLearningProgress = async (req, res, next) => {
+  try {
+    const profile = await LearningProfile.findOne({ userId: req.user.id });
+    const age = ageOnDate(req.user.dateOfBirth);
+    const isAdvanced = (profile?.currentEnglishLevel || profile?.englishLevel) === 'advanced';
+    const eligibleByAge = age !== null && age >= 18;
+    const verification = profile?.identityVerification?.status || 'not_requested';
+    sendSuccess(res, {
+      ...progressionView(profile),
+      ageEligible: eligibleByAge,
+      verificationStatus: verification,
+      ieltsAccess: isAdvanced && eligibleByAge && verification === 'verified',
+      ieltsLockReason: !isAdvanced ? 'level' : !eligibleByAge ? 'age' : verification !== 'verified' ? 'verification' : null,
+    }, 'Learning progression retrieved');
+  } catch (err) { next(err); }
+};
+
+exports.getVerificationStatus = async (req, res, next) => {
+  try {
+    const profile = await LearningProfile.findOne({ userId: req.user.id })
+      .select('currentEnglishLevel englishLevel identityVerification.status identityVerification.requestedAt identityVerification.documentUploadedAt +identityVerification.documentKey');
+    const age = ageOnDate(req.user.dateOfBirth);
+    sendSuccess(res, {
+      status: profile?.identityVerification?.status || 'not_requested',
+      requestedAt: profile?.identityVerification?.requestedAt || null,
+      hasIdDocument: Boolean(profile?.identityVerification?.documentKey),
+      documentUploadedAt: profile?.identityVerification?.documentUploadedAt || null,
+      ageEligible: age !== null && age >= 18,
+      levelEligible: (profile?.currentEnglishLevel || profile?.englishLevel) === 'advanced',
+    }, 'Verification status retrieved');
+  } catch (err) { next(err); }
+};
+
+exports.uploadIdentityDocument = async (req, res, next) => {
+  let savedDocument;
+  try {
+    const age = ageOnDate(req.user.dateOfBirth);
+    if (age === null || age < 18) return sendError(res, 'Identity verification for IELTS is available only to users aged 18 and above.', 403);
+    const profile = await LearningProfile.findOne({ userId: req.user.id })
+      .select('+identityVerification.documentKey +identityVerification.documentMimeType');
+    if (!profile || (profile.currentEnglishLevel || profile.englishLevel) !== 'advanced') {
+      return sendError(res, 'Reach Advanced English before uploading an ID for IELTS verification.', 403);
+    }
+    if (profile.identityVerification?.status === 'verified') return sendError(res, 'Your identity is already verified.', 409);
+    let parsed;
+    try { parsed = await saveDocument(req.body || {}); }
+    catch (error) { return sendError(res, error.message, 400); }
+    savedDocument = parsed;
+    const oldKey = profile.identityVerification?.documentKey;
+    const oldMimeType = profile.identityVerification?.documentMimeType;
+    profile.set('identityVerification.documentKey', parsed.key);
+    profile.set('identityVerification.documentMimeType', parsed.mimeType);
+    profile.set('identityVerification.documentUploadedAt', new Date());
+    await profile.save();
+    if (oldKey && oldKey !== parsed.key) await removeDocument(oldKey, oldMimeType).catch(() => {});
+    sendSuccess(res, { hasIdDocument: true, documentUploadedAt: profile.identityVerification.documentUploadedAt }, 'Government ID image uploaded securely. Submit the verification request when ready.');
+  } catch (err) {
+    if (savedDocument) await removeDocument(savedDocument.key, savedDocument.mimeType).catch(() => {});
+    next(err);
+  }
+};
+
+exports.requestIdentityVerification = async (req, res, next) => {
+  try {
+    const age = ageOnDate(req.user.dateOfBirth);
+    if (age === null || age < 18) return sendError(res, 'Identity verification for IELTS is available only to users aged 18 and above.', 403);
+    const profile = await LearningProfile.findOne({ userId: req.user.id }).select('+identityVerification.documentKey');
+    if (!profile || (profile.currentEnglishLevel || profile.englishLevel) !== 'advanced') {
+      return sendError(res, 'Reach Advanced English before requesting IELTS verification.', 403);
+    }
+    if (profile.identityVerification?.status === 'verified') return sendError(res, 'Your identity is already verified.', 409);
+    if (!profile.identityVerification?.documentKey) return sendError(res, 'Upload an image of your government-issued ID before submitting your verification request.', 400);
+    profile.set('identityVerification.status', 'pending');
+    profile.set('identityVerification.requestedAt', new Date());
+    profile.set('identityVerification.reviewedAt', undefined);
+    profile.set('identityVerification.adminSeenAt', undefined);
+    await profile.save();
+    sendSuccess(res, { status: 'pending' }, 'Verification request received. Follow the secure verification instructions from support.');
+  } catch (err) { next(err); }
 };
 
 // Goals & Progress: save daily / weekly targets.
@@ -267,17 +363,41 @@ exports.deleteAccount = async (req, res, next) => {
     }
 
     const userId = user._id;
+    const learningProfile = await LearningProfile.findOne({ userId })
+      .select('+identityVerification.documentKey +identityVerification.documentMimeType');
+    const listeningIds = (await ListeningTest.find({ userId }).select('_id')).map((test) => test._id);
+    if (learningProfile?.identityVerification?.documentKey) {
+      await removeDocument(learningProfile.identityVerification.documentKey, learningProfile.identityVerification.documentMimeType);
+    }
     await Promise.all([
       LearningProfile.deleteMany({ userId }),
       Progress.deleteMany({ userId }),
       PracticeSession.deleteMany({ userId }),
       AIInteraction.deleteMany({ userId }),
       SurveyResponse.deleteMany({ userId }),
-      SupportTicket.deleteMany({ userId })
+      SupportTicket.deleteMany({ userId }),
+      WritingSubmission.deleteMany({ userId }),
+      SpeakingSubmission.deleteMany({ userId }),
+      ReadingTest.deleteMany({ userId }),
+      ListeningTest.deleteMany({ userId }),
+      MockTest.deleteMany({ userId }),
+      IeltsProfile.deleteMany({ userId }),
+      Otp.deleteMany({ userId })
     ]);
+    await audioStore.removeMany(listeningIds);
     await User.deleteOne({ _id: userId });
 
     sendSuccess(res, null, 'Account deleted');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Remember that the learner has completed or skipped the first-run guide.
+exports.markGuideSeen = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user.id, { guideSeenAt: new Date() }, { new: true });
+    sendSuccess(res, { guideSeenAt: user.guideSeenAt }, 'Guide marked as seen');
   } catch (err) {
     next(err);
   }
@@ -297,7 +417,8 @@ exports.logoutAllDevices = async (req, res, next) => {
 exports.exportData = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const [account, learningProfile, progress, practiceSessions, aiConversations, surveyResponses, supportRequests] =
+    const [account, learningProfile, progress, practiceSessions, aiConversations, surveyResponses, supportRequests,
+      ieltsWriting, ieltsSpeaking, ieltsReading, ieltsListening, ieltsMockTests, ieltsProfile] =
       await Promise.all([
         User.findById(userId).select('-tokenVersion -__v').lean(),
         LearningProfile.findOne({ userId }).select('-__v').lean(),
@@ -305,7 +426,13 @@ exports.exportData = async (req, res, next) => {
         PracticeSession.find({ userId }).sort('createdAt').select('-__v').lean(),
         AIInteraction.find({ userId }).sort('createdAt').select('-__v').lean(),
         SurveyResponse.find({ userId }).sort('createdAt').select('-__v').lean(),
-        SupportTicket.find({ userId }).sort('createdAt').select('-__v').lean()
+        SupportTicket.find({ userId }).sort('createdAt').select('-__v').lean(),
+        WritingSubmission.find({ userId }).sort('createdAt').select('-__v').lean(),
+        SpeakingSubmission.find({ userId }).sort('createdAt').select('-__v').lean(),
+        ReadingTest.find({ userId }).sort('createdAt').select('-__v').lean(),
+        ListeningTest.find({ userId }).sort('createdAt').select('-__v').lean(),
+        MockTest.find({ userId }).sort('createdAt').select('-__v').lean(),
+        IeltsProfile.findOne({ userId }).select('-__v').lean()
       ]);
 
     sendSuccess(res, {
@@ -316,7 +443,8 @@ exports.exportData = async (req, res, next) => {
       practiceSessions,
       aiConversations,
       surveyResponses,
-      supportRequests
+      supportRequests,
+      ielts: { writing: ieltsWriting, speaking: ieltsSpeaking, reading: ieltsReading, listening: ieltsListening, mockTests: ieltsMockTests, profile: ieltsProfile }
     }, 'Data export ready');
   } catch (err) {
     next(err);

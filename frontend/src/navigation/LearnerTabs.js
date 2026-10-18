@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,12 +10,25 @@ import ProgressScreen from '../screens/learner/ProgressScreen';
 import ProfileScreen from '../screens/learner/ProfileScreen';
 import { Sidebar, TopBar, useShell } from './WideLayout';
 import { COLORS } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 const Tab = createBottomTabNavigator();
 
 const LearnerTabs = () => {
   // Sidebar + top bar on web (icon-only when narrow); bottom tabs on native phone builds.
   const { enabled, sidebarWidth } = useShell();
+  const navigation = useNavigation();
+  const { user } = useAuth();
+  const guideOpened = useRef(false);
+
+  useEffect(() => {
+    if (guideOpened.current || !user || user.role !== 'learner' || user.guideSeenAt) return undefined;
+    const ageDays = (Date.now() - new Date(user.createdAt).getTime()) / 86400000;
+    if (!(ageDays <= 14)) return undefined;
+    guideOpened.current = true;
+    const timer = setTimeout(() => navigation.navigate('AppGuide', { firstRun: true }), 600);
+    return () => clearTimeout(timer);
+  }, [user, navigation]);
 
   return (
     <Tab.Navigator

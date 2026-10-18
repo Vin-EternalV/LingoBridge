@@ -550,3 +550,6 @@ exports.chatAssistant = async ({ messages, learnerLevel, nativeLanguage }) => {
     schema: chatSchema,
   });
 };
+
+// Used by the IELTS task generators and scoring services.
+exports.callAI = callAI;

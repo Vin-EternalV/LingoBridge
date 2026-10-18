@@ -9,7 +9,12 @@ const aiInteractionSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['exercise_generation', 'feedback', 'assistant_chat'],
+    enum: [
+      'exercise_generation', 'feedback', 'assistant_chat',
+      'writing_prompt', 'writing_assessment',
+      'speaking_prompt', 'speaking_assessment',
+      'reading_prompt', 'listening_prompt', 'listening_audio',
+    ],
     required: true
   },
   skill: {

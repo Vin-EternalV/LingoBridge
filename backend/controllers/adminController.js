@@ -4,6 +4,10 @@ const AIInteraction = require('../models/AIInteraction');
 const LearningContent = require('../models/LearningContent');
 const AuditLog = require('../models/AuditLog');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/responseHelper');
+const LearningProfile = require('../models/LearningProfile');
+const { ageOnDate } = require('../utils/learningProgression');
+const fs = require('fs/promises');
+const { getDocumentPath, removeDocument } = require('../utils/identityDocuments');
 
 const createAuditLog = async (req, action, target, targetId, details) => {
   try {
@@ -19,6 +23,87 @@ const createAuditLog = async (req, action, target, targetId, details) => {
   } catch (error) {
     console.error('Audit Log Error:', error);
   }
+};
+
+exports.getIdentityVerifications = async (req, res, next) => {
+  try {
+    const profiles = await LearningProfile.find({ 'identityVerification.status': { $in: ['pending', 'verified', 'rejected'] } })
+      .select('userId currentEnglishLevel englishLevel identityVerification.status identityVerification.requestedAt identityVerification.documentUploadedAt +identityVerification.documentKey')
+      .sort('-identityVerification.requestedAt').limit(200).lean();
+    const users = await User.find({ _id: { $in: profiles.map((item) => item.userId) } }).select('firstName lastName email dateOfBirth').lean();
+    const byId = new Map(users.map((user) => [String(user._id), user]));
+    sendSuccess(res, profiles.map((profile) => {
+      const user = byId.get(String(profile.userId));
+      return {
+        userId: profile.userId,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        email: user?.email,
+        ageEligible: ageOnDate(user?.dateOfBirth) >= 18,
+        levelEligible: (profile.currentEnglishLevel || profile.englishLevel) === 'advanced',
+        status: profile.identityVerification?.status,
+        requestedAt: profile.identityVerification?.requestedAt,
+        hasIdDocument: Boolean(profile.identityVerification?.documentKey),
+        documentUploadedAt: profile.identityVerification?.documentUploadedAt || null,
+      };
+    }), 'Identity verification requests retrieved');
+  } catch (err) { next(err); }
+};
+
+exports.reviewIdentityVerification = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!['verified', 'rejected'].includes(status)) return sendError(res, 'Choose verified or rejected.', 400);
+    const profile = await LearningProfile.findOne({ userId: req.params.id })
+      .select('+identityVerification.documentKey +identityVerification.documentMimeType');
+    const user = await User.findById(req.params.id).select('dateOfBirth');
+    if (!profile || !user) return sendError(res, 'Learner not found', 404);
+    const age = ageOnDate(user.dateOfBirth);
+    if (status === 'verified' && (age === null || age < 18 || (profile.currentEnglishLevel || profile.englishLevel) !== 'advanced')) {
+      return sendError(res, 'The learner must be at least 18 and at Advanced English before verification can be approved.', 403);
+    }
+    if (!['pending', 'rejected'].includes(profile.identityVerification?.status)) return sendError(res, 'No verification request is awaiting review.', 409);
+    if (status === 'verified') {
+      const documentPath = getDocumentPath(profile.identityVerification?.documentKey, profile.identityVerification?.documentMimeType);
+      if (!documentPath) return sendError(res, 'Approval blocked: the learner must upload a government-issued ID image first.', 409);
+      try { await fs.access(documentPath); }
+      catch { return sendError(res, 'Approval blocked: the uploaded ID image is unavailable. Ask the learner to upload it again.', 409); }
+    }
+    const documentKey = profile.identityVerification?.documentKey;
+    const documentMimeType = profile.identityVerification?.documentMimeType;
+    profile.set('identityVerification.status', status);
+    profile.set('identityVerification.reviewedAt', new Date());
+    profile.set('identityVerification.learnerSeenAt', undefined);
+    if (status === 'verified' || status === 'rejected') {
+      profile.set('identityVerification.documentKey', undefined);
+      profile.set('identityVerification.documentMimeType', undefined);
+    }
+    await profile.save();
+    // Keep the image only while a request awaits review.
+    if (documentKey && (status === 'verified' || status === 'rejected')) {
+      await removeDocument(documentKey, documentMimeType).catch(() => {});
+    }
+    await createAuditLog(req, 'identity_verification_reviewed', 'learner', req.params.id, { status });
+    sendSuccess(res, { userId: req.params.id, status }, 'Verification status updated');
+  } catch (err) { next(err); }
+};
+
+exports.getIdentityDocument = async (req, res, next) => {
+  try {
+    const profile = await LearningProfile.findOne({ userId: req.params.id })
+      .select('+identityVerification.documentKey +identityVerification.documentMimeType');
+    const filePath = getDocumentPath(profile?.identityVerification?.documentKey, profile?.identityVerification?.documentMimeType);
+    if (!filePath) return sendError(res, 'No government ID image is available for this learner.', 404);
+    const image = await fs.readFile(filePath).catch(() => null);
+    if (!image) return sendError(res, 'The uploaded ID image is unavailable.', 404);
+    res.set('Cache-Control', 'no-store, private');
+    res.set('Pragma', 'no-cache');
+    await createAuditLog(req, 'identity_document_viewed', 'learner', req.params.id, { status: profile.identityVerification?.status });
+    sendSuccess(res, {
+      mimeType: profile.identityVerification.documentMimeType,
+      base64: image.toString('base64'),
+    }, 'Identity document retrieved');
+  } catch (err) { next(err); }
 };
 
 exports.getDashboardStats = async (req, res, next) => {

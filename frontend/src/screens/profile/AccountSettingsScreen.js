@@ -17,6 +17,16 @@ import { COLORS, FONTS, RADIUS, SPACING } from '../../constants/theme';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const formatBirthDate = (value) => {
+  if (!value) return '—';
+  const match = String(value).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '—';
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+};
+
 const InfoRow = ({ label, value, last }) => (
   <View style={[styles.infoRow, !last && styles.infoRowBorder]}>
     <Text style={styles.infoLabel}>{label}</Text>
@@ -181,6 +191,8 @@ const AccountSettingsScreen = () => {
       <SectionLabel>Personal details</SectionLabel>
       <StatusMessage type={detailsStatus?.type} message={detailsStatus?.message} />
       <Card>
+        <InfoRow label="Date of birth" value={formatBirthDate(user?.dateOfBirth)} last={!user?.phone} />
+        {!!user?.phone && <InfoRow label="Phone number" value={user.phone} last />}
         <Input label="First name" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
         <Input label="Last name" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
         <Input

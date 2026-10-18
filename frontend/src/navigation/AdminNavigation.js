@@ -7,6 +7,7 @@ import LearningContentScreen from '../screens/admin/LearningContentScreen';
 import AIActivityScreen from '../screens/admin/AIActivityScreen';
 import ReportsScreen from '../screens/admin/ReportsScreen';
 import SupportRequestsScreen from '../screens/admin/SupportRequestsScreen';
+import IdentityVerificationScreen from '../screens/admin/IdentityVerificationScreen';
 import { Sidebar, TopBar, useShell, ADMIN_ICONS } from './WideLayout';
 import { COLORS } from '../constants/theme';
 
@@ -32,6 +33,7 @@ const AdminNavigation = () => {
           else if (route.name === 'AI Activity') iconName = focused ? 'sparkles' : 'sparkles-outline';
           else if (route.name === 'Reports') iconName = focused ? 'stats-chart' : 'stats-chart-outline';
           else if (route.name === 'Support') iconName = focused ? 'headset' : 'headset-outline';
+          else if (route.name === 'ID review') iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -47,6 +49,7 @@ const AdminNavigation = () => {
       <Tab.Screen name="AI Activity" component={AIActivityScreen} />
       <Tab.Screen name="Reports" component={ReportsScreen} />
       <Tab.Screen name="Support" component={SupportRequestsScreen} />
+      <Tab.Screen name="ID review" component={IdentityVerificationScreen} />
     </Tab.Navigator>
   );
 };

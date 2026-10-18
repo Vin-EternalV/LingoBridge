@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/Button";
-import ErrorMessage from "../../components/ErrorMessage";
-import { updateSession } from "../../api/practice";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
 const FeedbackScreen = ({ route, navigation }) => {
@@ -21,10 +19,9 @@ const FeedbackScreen = ({ route, navigation }) => {
     startedAt,
     elapsedBefore = 0,
     answers = [],
+    levelAdvanced = false,
   } = route.params;
 
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   const isLastQuestion = currentIndex === totalExercises - 1;
   const newScoreInfo = {
@@ -45,71 +42,30 @@ const FeedbackScreen = ({ route, navigation }) => {
   const handleNext = async () => {
     const duration = Math.max(0, (elapsedBefore || 0) + Math.round((Date.now() - startedAt) / 60000));
     if (!isLastQuestion) {
-      setSaving(true);
-      setError("");
-      try {
-        const savedExercises = exercises.map((item, index) =>
-          allAnswers[index] || { exerciseData: item },
-        );
-        await updateSession(sessionId, {
-          exercises: savedExercises,
-          currentIndex: currentIndex + 1,
-          correctAnswers: newScoreInfo.correct,
-          totalQuestions: newScoreInfo.total,
-          score: newScoreInfo.total ? Math.round((newScoreInfo.correct / newScoreInfo.total) * 100) : 0,
-          accuracy: newScoreInfo.total ? Math.round((newScoreInfo.correct / newScoreInfo.total) * 100) : 0,
-          duration,
-          status: "in_progress",
-        });
-        navigation.navigate("Exercise", {
-          skill,
-          topic,
-          difficulty,
-          exercises,
-          currentIndex: currentIndex + 1,
-          scoreInfo: newScoreInfo,
-          sessionId,
-          startedAt: Date.now(),
-          elapsedBefore: duration,
-          answers: allAnswers,
-        });
-      } catch (err) {
-        setError(err.response?.data?.message || "Could not save your progress. Please try again.");
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    const finalDuration = Math.max(1, duration);
-    try {
-      await updateSession(sessionId, {
-        exercises: allAnswers,
-        correctAnswers: newScoreInfo.correct,
-        totalQuestions: newScoreInfo.total,
-        score: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
-        accuracy: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
-        duration: finalDuration,
-        status: "completed",
-        completedAt: new Date().toISOString(),
-      });
-      navigation.navigate("SessionSummary", {
+      navigation.navigate("Exercise", {
         skill,
         topic,
         difficulty,
+        exercises,
+        currentIndex: currentIndex + 1,
         scoreInfo: newScoreInfo,
-        duration: `${duration} min`,
         sessionId,
+        startedAt: Date.now(),
+        elapsedBefore: duration,
+        answers: allAnswers,
       });
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Could not save the session. Please try again.",
-      );
-      setSaving(false);
+      return;
     }
+
+    navigation.navigate("SessionSummary", {
+      skill,
+      topic,
+      difficulty,
+      scoreInfo: newScoreInfo,
+      duration: `${duration} min`,
+      sessionId,
+      levelAdvanced,
+    });
   };
 
   return (
@@ -182,23 +138,14 @@ const FeedbackScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        <ErrorMessage message={error} />
       </ScrollView>
 
       <View style={styles.footer}>
         <Button
-          title={
-            saving
-              ? "Saving Session..."
-              : isLastQuestion
-                ? "Finish Session"
-                : "Next Question"
-          }
+          title={isLastQuestion ? "Finish Session" : "Next Question"}
           onPress={handleNext}
           variant={feedback.isCorrect ? "primary" : "danger"}
           fullWidth
-          disabled={saving}
-          loading={saving}
         />
       </View>
     </SafeAreaView>

@@ -77,8 +77,8 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const register = async (firstName, lastName, email, password) => {
-    const data = await authApi.register(firstName, lastName, email, password);
+  const register = async (firstName, lastName, email, password, extra) => {
+    const data = await authApi.register(firstName, lastName, email, password, extra);
     if (data.token) await finishSignIn(data);
     return data;
   };

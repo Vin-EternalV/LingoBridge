@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const SupportTicket = require('../models/SupportTicket');
 const AIInteraction = require('../models/AIInteraction');
 const User = require('../models/User');
+const LearningProfile = require('../models/LearningProfile');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
 
 const STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
@@ -135,18 +136,50 @@ exports.getSupportNotifications = async (req, res, next) => {
       }
     });
 
-    const flagged = await AIInteraction.find({ moderationFlag: { $ne: null }, moderationAdminSeenAt: null })
-      .sort('-createdAt').limit(10).populate('userId', 'firstName lastName')
-      .select('userId moderationFlag createdAt').lean();
+    const [flagged, verificationProfiles] = await Promise.all([
+      AIInteraction.find({ moderationFlag: { $ne: null }, moderationAdminSeenAt: null })
+        .sort('-createdAt').limit(10).populate('userId', 'firstName lastName')
+        .select('userId moderationFlag createdAt').lean(),
+      LearningProfile.find({ 'identityVerification.status': 'pending' })
+        .select('userId identityVerification.status identityVerification.requestedAt identityVerification.adminSeenAt')
+        .sort('-identityVerification.requestedAt').limit(200).lean(),
+    ]);
     flagged.forEach((report) => {
       const name = report.userId ? `${report.userId.firstName} ${report.userId.lastName}`.trim() : 'A learner';
       items.push({ itemId: report._id, kind: 'moderation_report', name, preview: `Flagged: ${report.moderationFlag.replaceAll('_', ' ')}`, at: report.createdAt });
     });
+    const newVerifications = verificationProfiles.filter((profile) =>
+      profile.identityVerification?.requestedAt &&
+      (!profile.identityVerification.adminSeenAt || profile.identityVerification.adminSeenAt < profile.identityVerification.requestedAt)
+    );
+    const verificationUsers = await User.find({ _id: { $in: newVerifications.map((profile) => profile.userId) } })
+      .select('firstName lastName').lean();
+    const verificationNames = new Map(verificationUsers.map((user) => [String(user._id), `${user.firstName} ${user.lastName}`.trim()]));
+    newVerifications.forEach((profile) => items.push({
+      userId: profile.userId,
+      kind: 'identity_verification',
+      name: verificationNames.get(String(profile.userId)) || 'A learner',
+      subject: 'Government ID verification',
+      preview: 'Submitted an identity verification request',
+      at: profile.identityVerification.requestedAt,
+    }));
     items.sort((a, b) => new Date(b.at) - new Date(a.at));
     sendSuccess(res, { count: items.length, items: items.slice(0, 10) }, 'Notifications retrieved');
   } catch (err) {
     next(err);
   }
+};
+
+exports.markIdentityVerificationNotificationSeen = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return sendError(res, 'Invalid learner id.', 400);
+    await LearningProfile.updateOne(
+      { userId: req.params.id, 'identityVerification.status': 'pending' },
+      { $set: { 'identityVerification.adminSeenAt': new Date() } },
+      { timestamps: false }
+    );
+    sendSuccess(res, {}, 'Identity verification notification marked as read');
+  } catch (err) { next(err); }
 };
 
 exports.markModerationNotificationSeen = async (req, res, next) => {

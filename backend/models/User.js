@@ -65,6 +65,9 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: 40,
     },
+    guideSeenAt: { type: Date },
+    dateOfBirth: { type: Date },
+    phone: { type: String, trim: true, maxlength: 20 },
     lastLogin: {
       type: Date,
     },

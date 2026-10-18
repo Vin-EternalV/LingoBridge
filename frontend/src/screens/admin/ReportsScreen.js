@@ -13,10 +13,15 @@ import { COLORS, FONTS, SPACING } from "../../constants/theme";
 const ReportsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState(null);
+  const [moderationReports, setModerationReports] = useState([]);
 
   useEffect(() => {
     const fetchReports = async () => {
-      try { setReports(await adminApi.getReports()); }
+      try {
+        const [summary, flags] = await Promise.all([adminApi.getReports(), adminApi.getModerationReports()]);
+        setReports(summary);
+        setModerationReports(flags || []);
+      }
       catch (err) { console.log("Reports fetch error:", err); }
       finally { setLoading(false); }
     };
@@ -65,6 +70,17 @@ const ReportsScreen = () => {
         <Card style={styles.card}>
           <VerticalBarChart title="Completed sessions · last 30 days" data={weeklyTrend} color={COLORS.success} emptyMessage="No completed sessions in the last 30 days." />
         </Card>
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>AI safety reports ({moderationReports.length})</Text>
+          <Text style={styles.muted}>Tutor prompts flagged for prompt override attempts or requests outside English learning.</Text>
+          {moderationReports.length === 0 ? <Text style={styles.muted}>No flagged prompts.</Text> : moderationReports.map((report) => (
+            <View key={report._id} style={styles.reportItem}>
+              <Text style={styles.reportName}>{report.userId ? `${report.userId.firstName} ${report.userId.lastName} · ${report.userId.email}` : 'Deleted learner'}</Text>
+              <Text style={styles.muted}>{new Date(report.createdAt).toLocaleString()}</Text>
+              <Text style={styles.reportPrompt}>{report.prompt}</Text>
+            </View>
+          ))}
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -77,6 +93,11 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: SPACING.base },
   col: { width: '48%', marginBottom: SPACING.base },
   card: { padding: SPACING.base, marginBottom: SPACING.base },
+  sectionTitle: { ...FONTS.h3, color: COLORS.text, marginBottom: SPACING.sm },
+  muted: { ...FONTS.small, color: COLORS.textSecondary, marginBottom: SPACING.sm },
+  reportItem: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: SPACING.md },
+  reportName: { ...FONTS.small, fontWeight: '600', color: COLORS.text },
+  reportPrompt: { ...FONTS.regular, color: COLORS.text, marginTop: SPACING.xs },
 });
 
 export default ReportsScreen;

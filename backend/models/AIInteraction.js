@@ -31,7 +31,13 @@ const aiInteractionSchema = new Schema({
   },
   errorMessage: {
     type: String
-  }
+  },
+  moderationFlag: {
+    type: String,
+    enum: ['off_topic_or_prompt_abuse', null],
+    default: null
+  },
+  moderationAdminSeenAt: { type: Date, default: null }
 }, {
   timestamps: true
 });

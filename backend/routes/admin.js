@@ -8,13 +8,16 @@ const {
   updateContent,
   deleteContent,
   getAIActivityStats,
-  getReports
+  getReports,
+  suspendLearner,
+  getModerationReports
 } = require('../controllers/adminController');
 const {
   getSupportTickets,
   updateSupportTicket,
   getSupportNotifications,
-  markSupportNotificationSeen
+  markSupportNotificationSeen,
+  markModerationNotificationSeen
 } = require('../controllers/adminSupportController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
@@ -28,6 +31,7 @@ router.use(authorize(ROLES.ADMIN, ROLES.SUPERADMIN));
 router.get('/dashboard', getDashboardStats);
 router.get('/users', getUsers);
 router.put('/users/:id/status', toggleUserStatus);
+router.put('/users/:id/suspension', suspendLearner);
 
 router.get('/content', getContent);
 router.post('/content', createContent);
@@ -36,10 +40,12 @@ router.delete('/content/:id', deleteContent);
 
 router.get('/ai-activity', getAIActivityStats);
 router.get('/reports', getReports);
+router.get('/moderation-reports', getModerationReports);
 
 router.get('/support', getSupportTickets);
 router.get('/support/notifications', getSupportNotifications);
 router.post('/support/:id/seen', markSupportNotificationSeen);
+router.post('/moderation-reports/:id/seen', markModerationNotificationSeen);
 router.put('/support/:id', updateSupportTicket);
 
 module.exports = router;

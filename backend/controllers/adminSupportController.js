@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const SupportTicket = require('../models/SupportTicket');
+const AIInteraction = require('../models/AIInteraction');
 const User = require('../models/User');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
 
@@ -134,10 +135,30 @@ exports.getSupportNotifications = async (req, res, next) => {
       }
     });
 
+    const flagged = await AIInteraction.find({ moderationFlag: { $ne: null }, moderationAdminSeenAt: null })
+      .sort('-createdAt').limit(10).populate('userId', 'firstName lastName')
+      .select('userId moderationFlag createdAt').lean();
+    flagged.forEach((report) => {
+      const name = report.userId ? `${report.userId.firstName} ${report.userId.lastName}`.trim() : 'A learner';
+      items.push({ itemId: report._id, kind: 'moderation_report', name, preview: 'Tutor prompt flagged for review', at: report.createdAt });
+    });
+    items.sort((a, b) => new Date(b.at) - new Date(a.at));
     sendSuccess(res, { count: items.length, items: items.slice(0, 10) }, 'Notifications retrieved');
   } catch (err) {
     next(err);
   }
+};
+
+exports.markModerationNotificationSeen = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return sendError(res, 'Invalid report id.', 400);
+    await AIInteraction.updateOne(
+      { _id: req.params.id, moderationFlag: { $ne: null } },
+      { $set: { moderationAdminSeenAt: new Date() } },
+      { timestamps: false }
+    );
+    sendSuccess(res, {}, 'Moderation notification marked as read');
+  } catch (err) { next(err); }
 };
 
 exports.markSupportNotificationSeen = async (req, res, next) => {

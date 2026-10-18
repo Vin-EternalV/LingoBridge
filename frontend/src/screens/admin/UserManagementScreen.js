@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import Header from '../../components/Header';
 import DataTable from '../../components/DataTable';
 import Input from '../../components/Input';
+import Button from '../../components/Button';
+import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import * as adminApi from '../../api/admin';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +18,9 @@ const UserManagementScreen = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [suspending, setSuspending] = useState(null);
+  const [suspensionDays, setSuspensionDays] = useState('7');
+  const [suspensionReason, setSuspensionReason] = useState('');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -45,6 +50,12 @@ const UserManagementScreen = () => {
 
   const handleToggleStatus = async (row) => {
     if (busyId || isProtected(row)) return;
+    if (row.role === 'learner' && row.isActive) {
+      setSuspending(row);
+      setSuspensionDays('7');
+      setSuspensionReason('');
+      return;
+    }
     const enable = !row.isActive;
     const name = `${row.firstName} ${row.lastName}`.trim();
 
@@ -67,6 +78,24 @@ const UserManagementScreen = () => {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const applySuspension = async () => {
+    const permanent = suspensionDays.trim().toLowerCase() === 'permanent';
+    const days = permanent ? null : Number(suspensionDays);
+    if (!suspending || (!permanent && (!Number.isInteger(days) || days < 1 || days > 3650)) || !suspensionReason.trim()) {
+      notify('Check suspension details', 'Enter a reason and a duration from 1 to 3,650 days, or type permanent.');
+      return;
+    }
+    try {
+      setBusyId(suspending._id);
+      await adminApi.suspendLearner(suspending._id, days, suspensionReason.trim());
+      setUsers((prev) => prev.map((u) => u._id === suspending._id ? { ...u, isActive: false } : u));
+      setSuspending(null);
+      notify('Learner suspended', permanent ? 'This learner is banned until an admin enables the account.' : `Access will return after ${days} days.`);
+    } catch (err) {
+      notify('Suspension failed', getErrorMessage(err));
+    } finally { setBusyId(null); }
   };
 
   const columns = [
@@ -98,12 +127,17 @@ const UserManagementScreen = () => {
             data={users}
             onRowAction={handleToggleStatus}
             actionHeader="Action"
-            actionLabel={(row) => (row.isActive ? 'Disable' : 'Enable')}
+            actionLabel={(row) => (row.isActive ? (row.role === 'learner' ? 'Suspend' : 'Disable') : 'Enable')}
             actionVariant={(row) => (row.isActive ? 'danger' : 'success')}
             isActionDisabled={(row) => isProtected(row) || busyId === row._id}
           />
         )}
       </ScrollView>
+      <Modal visible={!!suspending} onClose={() => setSuspending(null)} title="Suspend learner" footer={<Button title="Suspend learner" variant="danger" onPress={applySuspension} loading={busyId === suspending?._id} fullWidth />}>
+        <Text style={styles.modalText}>Set how long this learner cannot sign in. Their account will reactivate automatically when the suspension ends. Type “permanent” for a ban that requires an admin to enable the account.</Text>
+        <Input label="Duration in days or permanent" value={suspensionDays} onChangeText={setSuspensionDays} placeholder="7" />
+        <Input label="Reason" value={suspensionReason} onChangeText={setSuspensionReason} multiline maxLength={500} placeholder="Describe the policy violation" />
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -127,6 +161,7 @@ const styles = StyleSheet.create({
   searchInput: {
     marginBottom: SPACING.base,
   },
+  modalText: { ...FONTS.regular, color: COLORS.textSecondary, marginBottom: SPACING.base },
 });
 
 export default UserManagementScreen;

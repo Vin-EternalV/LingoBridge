@@ -105,6 +105,7 @@ exports.toggleUserStatus = async (req, res, next) => {
     // Use the status the app asked for if it sent one, otherwise flip it.
     const next = typeof req.body.isActive === 'boolean' ? req.body.isActive : !user.isActive;
     user.isActive = next;
+    if (next) user.suspension = { until: null, reason: '' };
     if (!next) user.tokenVersion = (user.tokenVersion || 0) + 1; // signs them out on every device
     await user.save({ validateBeforeSave: false });
 
@@ -114,6 +115,36 @@ exports.toggleUserStatus = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+exports.suspendLearner = async (req, res, next) => {
+  try {
+    const days = req.body.days;
+    if (!(days === null || (Number.isInteger(days) && days >= 1 && days <= 3650))) {
+      return sendError(res, 'Choose a suspension from 1 to 3,650 days, or null for a permanent ban.', 400);
+    }
+    const reason = typeof req.body.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+    if (!reason) return sendError(res, 'A reason is required.', 400);
+    const user = await User.findById(req.params.id);
+    if (!user) return sendError(res, 'User not found', 404);
+    if (user.role !== 'learner') return sendError(res, 'Only learner accounts can be suspended here.', 403);
+    user.isActive = false;
+    user.suspension = { until: days === null ? null : new Date(Date.now() + days * 86400000), reason };
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save({ validateBeforeSave: false });
+    await createAuditLog(req, 'suspend_learner', 'User', user._id, { days, reason });
+    sendSuccess(res, user, 'Learner suspended');
+  } catch (err) { next(err); }
+};
+
+exports.getModerationReports = async (req, res, next) => {
+  try {
+    const reports = await AIInteraction.find({ moderationFlag: { $ne: null } })
+      .sort('-createdAt').limit(200)
+      .populate('userId', 'firstName lastName email')
+      .select('userId prompt moderationFlag createdAt').lean();
+    sendSuccess(res, reports, 'Moderation reports retrieved');
+  } catch (err) { next(err); }
 };
 
 exports.getContent = async (req, res, next) => {

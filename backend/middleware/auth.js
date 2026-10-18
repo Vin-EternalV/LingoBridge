@@ -16,6 +16,12 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
 
+    if (user && !user.isActive && user.suspension?.until && user.suspension.until <= new Date()) {
+      user.isActive = true;
+      user.suspension = { until: null, reason: '' };
+      await user.save({ validateBeforeSave: false });
+    }
+
     if (!user || !user.isActive || (decoded.tv || 0) !== (user.tokenVersion || 0)) {
       return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
     }

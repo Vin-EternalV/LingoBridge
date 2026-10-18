@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    suspension: {
+      until: { type: Date, default: null },
+      reason: { type: String, trim: true, maxlength: 500, default: '' },
+    },
     // New sign-ups start unverified and are verified by the emailed code. Accounts created before this
     // field existed (and admin-created accounts) load as verified through the default.
     emailVerified: {

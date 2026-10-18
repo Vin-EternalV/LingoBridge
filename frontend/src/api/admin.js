@@ -15,6 +15,16 @@ export const toggleUserStatus = async (userId, isActive) => {
   return response.data.data;
 };
 
+export const suspendLearner = async (userId, days, reason) => {
+  const response = await put(`/admin/users/${userId}/suspension`, { days, reason });
+  return response.data.data;
+};
+
+export const getModerationReports = async () => {
+  const response = await get('/admin/moderation-reports');
+  return response.data.data;
+};
+
 export const getContent = async () => {
   const response = await get('/admin/content');
   return response.data.data;
@@ -60,6 +70,11 @@ export const updateSupportTicket = async (id, data) => {
 // { count, items } - support requests waiting for an answer.
 export const getSupportNotifications = async () => {
   const response = await get('/admin/support/notifications');
+  return response.data.data;
+};
+
+export const markModerationNotificationSeen = async (id) => {
+  const response = await post(`/admin/moderation-reports/${id}/seen`);
   return response.data.data;
 };
 

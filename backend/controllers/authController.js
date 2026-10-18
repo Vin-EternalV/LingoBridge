@@ -121,6 +121,11 @@ exports.login = async (req, res, next) => {
       "+password +lockedUntil +loginAttempts",
     );
 
+    if (user && !user.isActive && user.suspension?.until && user.suspension.until <= new Date()) {
+      user.isActive = true;
+      user.suspension = { until: null, reason: '' };
+      await user.save({ validateBeforeSave: false });
+    }
     if (!user || !user.isActive) {
       return sendError(res, "Invalid credentials", 401);
     }

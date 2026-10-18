@@ -205,6 +205,7 @@ export const TopBar = ({ navigation }) => {
 
   const notificationTitle = (item) => {
     if (!isStaff) return `Support replied to “${item.subject}”`;
+    if (item.kind === 'moderation_report') return `AI flagged a prompt from ${item.name}`;
     return item.kind === 'new_request' ? `New request from ${item.name}` : `${item.name} replied`;
   };
 
@@ -212,16 +213,17 @@ export const TopBar = ({ navigation }) => {
     setNotifOpen(false);
     setNotif((current) => ({
       count: Math.max(0, current.count - 1),
-      items: current.items.filter((entry) => String(entry.ticketId) !== String(item.ticketId)),
+      items: current.items.filter((entry) => String(entry.itemId || entry.ticketId) !== String(item.itemId || item.ticketId)),
     }));
     try {
-      if (isStaff) await adminApi.markSupportNotificationSeen(item.ticketId);
+      if (isStaff && item.kind === 'moderation_report') await adminApi.markModerationNotificationSeen(item.itemId);
+      else if (isStaff) await adminApi.markSupportNotificationSeen(item.ticketId);
       else await supportApi.markTicketSeen(item.ticketId);
     } catch (e) {
       // Continue to the request even if marking it read fails.
     }
     await loadNotifications();
-    navigation.navigate(isStaff ? 'Support' : 'HelpSupport');
+    navigation.navigate(isStaff ? (item.kind === 'moderation_report' ? 'Reports' : 'Support') : 'HelpSupport');
   };
 
   const initial = (user?.firstName || user?.email || '?').charAt(0).toUpperCase();
@@ -322,12 +324,12 @@ export const TopBar = ({ navigation }) => {
           ) : (
             notif.items.map((item) => (
               <TouchableOpacity
-                key={`${item.ticketId}-${item.at}`}
+                key={`${item.itemId || item.ticketId}-${item.at}`}
                 style={styles.notifItem}
                 onPress={() => openNotification(item)}
                 accessibilityRole="button"
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.primary} />
+                <Ionicons name={item.kind === 'moderation_report' ? 'shield-outline' : 'chatbubble-ellipses-outline'} size={18} color={COLORS.primary} />
                 <View style={styles.notifBody}>
                   <Text style={styles.notifText} numberOfLines={2}>
                     {notificationTitle(item)}

@@ -1,5 +1,36 @@
 const nodemailer = require("nodemailer");
 
+const sendWithBrevo = async ({ to, subject, text, html }) => {
+  if (!process.env.BREVO_API_KEY) return false;
+  const senderEmail = process.env.BREVO_FROM_EMAIL;
+  if (!senderEmail) throw new Error("BREVO_FROM_EMAIL is not configured");
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        email: senderEmail,
+        name: process.env.BREVO_FROM_NAME || "LingoBridge",
+      },
+      to: [{ email: to }],
+      subject,
+      textContent: text,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Brevo API returned ${response.status}: ${details.slice(0, 500)}`);
+  }
+  return true;
+};
+
 const sendWithResend = async ({ to, subject, text, html }) => {
   if (!process.env.RESEND_API_KEY) return false;
   const from = process.env.RESEND_FROM;
@@ -61,6 +92,7 @@ exports.sendResetCode = async (to, code) => {
              <p>This code expires in 10 minutes. If you didn't request this, ignore this email.</p>`,
   };
   try {
+    if (await sendWithBrevo(message)) return;
     if (await sendWithResend(message)) return;
     const transporter = getTransporter();
     if (!transporter) {
@@ -70,7 +102,7 @@ exports.sendResetCode = async (to, code) => {
     await transporter.sendMail({ from: process.env.SMTP_FROM || "no-reply@lingobridge.local", ...message });
   } catch (err) {
     console.error("Failed to send reset email:", err.message);
-    console.log(`[EMAIL FAILED] Password reset code for ${to}: ${code}`);
+    console.log("[EMAIL FAILED] Password reset code delivery failed");
   }
 };
 
@@ -97,6 +129,7 @@ exports.sendOtpCode = async (to, code, purpose) => {
   };
 
   try {
+    if (await sendWithBrevo(message)) return;
     if (await sendWithResend(message)) return;
     const transporter = getTransporter();
     if (!transporter) {
@@ -109,7 +142,7 @@ exports.sendOtpCode = async (to, code, purpose) => {
     console.error("Failed to send verification email:", err.message);
     // If an API key is configured, treat provider rejection as a real failure
     // in every environment. Never log the OTP when delivery fails.
-    if (process.env.RESEND_API_KEY || isProd) throw err;
+    if (process.env.BREVO_API_KEY || process.env.RESEND_API_KEY || isProd) throw err;
     console.log(`[EMAIL FAILED] ${purpose} code delivery failed`);
   }
 };

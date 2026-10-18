@@ -81,13 +81,18 @@ const HistoryDetailScreen = ({ route, navigation }) => {
         <Text style={styles.heading}>Exercises</Text>
         {(session.exercises || []).map((entry, index) => {
           const exercise = entry.exerciseData || {};
+          const hasAnswer =
+            entry.userAnswer !== undefined &&
+            entry.userAnswer !== null &&
+            String(entry.userAnswer).trim() !== "" &&
+            entry.userAnswer !== "Time expired";
           return (
             <Card key={index} style={styles.exercise}>
               <View style={styles.row}>
                 <Text style={styles.question}>Question {index + 1}</Text>
                 <Badge
-                  text={entry.isCorrect ? "Correct" : "Incorrect"}
-                  variant={entry.isCorrect ? "success" : "error"}
+                  text={!hasAnswer ? "Not answered" : entry.isCorrect ? "Correct" : "Incorrect"}
+                  variant={!hasAnswer ? "info" : entry.isCorrect ? "success" : "error"}
                 />
               </View>
               <Text style={styles.text}>
@@ -96,7 +101,7 @@ const HistoryDetailScreen = ({ route, navigation }) => {
               <Text style={styles.muted}>
                 Your answer: {String(entry.userAnswer || "No answer")}
               </Text>
-              {!entry.isCorrect && (
+              {hasAnswer && !entry.isCorrect && (
                 <Text style={styles.correct}>
                   Correct answer:{" "}
                   {String(

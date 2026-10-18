@@ -11,6 +11,12 @@ const getTransporter = () => {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: Number(process.env.SMTP_PORT) === 465, // 465 = SSL, 587 = STARTTLS
+      // SMTP is part of the signup request, so don't let a stalled mail server
+      // leave account creation hanging for Nodemailer's much longer defaults.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
+      dnsTimeout: 10_000,
       auth: {
         user: process.env.SMTP_USER,
         pass: String(process.env.SMTP_PASS).replace(/\s+/g, ""), // Google shows the App Password in groups of 4

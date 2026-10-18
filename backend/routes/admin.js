@@ -13,7 +13,8 @@ const {
 const {
   getSupportTickets,
   updateSupportTicket,
-  getSupportNotifications
+  getSupportNotifications,
+  markSupportNotificationSeen
 } = require('../controllers/adminSupportController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
@@ -38,6 +39,7 @@ router.get('/reports', getReports);
 
 router.get('/support', getSupportTickets);
 router.get('/support/notifications', getSupportNotifications);
+router.post('/support/:id/seen', markSupportNotificationSeen);
 router.put('/support/:id', updateSupportTicket);
 
 module.exports = router;

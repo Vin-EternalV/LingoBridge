@@ -19,6 +19,7 @@ const FeedbackScreen = ({ route, navigation }) => {
     scoreInfo,
     sessionId,
     startedAt,
+    elapsedBefore = 0,
     answers = [],
   } = route.params;
 
@@ -42,24 +43,47 @@ const FeedbackScreen = ({ route, navigation }) => {
   const allAnswers = [...answers, currentAnswer];
 
   const handleNext = async () => {
+    const duration = Math.max(0, (elapsedBefore || 0) + Math.round((Date.now() - startedAt) / 60000));
     if (!isLastQuestion) {
-      navigation.navigate("Exercise", {
-        skill,
-        topic,
-        difficulty,
-        exercises,
-        currentIndex: currentIndex + 1,
-        scoreInfo: newScoreInfo,
-        sessionId,
-        startedAt,
-        answers: allAnswers,
-      });
+      setSaving(true);
+      setError("");
+      try {
+        const savedExercises = exercises.map((item, index) =>
+          allAnswers[index] || { exerciseData: item },
+        );
+        await updateSession(sessionId, {
+          exercises: savedExercises,
+          currentIndex: currentIndex + 1,
+          correctAnswers: newScoreInfo.correct,
+          totalQuestions: newScoreInfo.total,
+          score: newScoreInfo.total ? Math.round((newScoreInfo.correct / newScoreInfo.total) * 100) : 0,
+          accuracy: newScoreInfo.total ? Math.round((newScoreInfo.correct / newScoreInfo.total) * 100) : 0,
+          duration,
+          status: "in_progress",
+        });
+        navigation.navigate("Exercise", {
+          skill,
+          topic,
+          difficulty,
+          exercises,
+          currentIndex: currentIndex + 1,
+          scoreInfo: newScoreInfo,
+          sessionId,
+          startedAt: Date.now(),
+          elapsedBefore: duration,
+          answers: allAnswers,
+        });
+      } catch (err) {
+        setError(err.response?.data?.message || "Could not save your progress. Please try again.");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
     setSaving(true);
     setError("");
-    const duration = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+    const finalDuration = Math.max(1, duration);
     try {
       await updateSession(sessionId, {
         exercises: allAnswers,
@@ -67,7 +91,7 @@ const FeedbackScreen = ({ route, navigation }) => {
         totalQuestions: newScoreInfo.total,
         score: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
         accuracy: Math.round((newScoreInfo.correct / newScoreInfo.total) * 100),
-        duration,
+        duration: finalDuration,
         status: "completed",
         completedAt: new Date().toISOString(),
       });

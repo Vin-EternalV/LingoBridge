@@ -208,8 +208,19 @@ export const TopBar = ({ navigation }) => {
     return item.kind === 'new_request' ? `New request from ${item.name}` : `${item.name} replied`;
   };
 
-  const openNotification = () => {
+  const openNotification = async (item) => {
     setNotifOpen(false);
+    setNotif((current) => ({
+      count: Math.max(0, current.count - 1),
+      items: current.items.filter((entry) => String(entry.ticketId) !== String(item.ticketId)),
+    }));
+    try {
+      if (isStaff) await adminApi.markSupportNotificationSeen(item.ticketId);
+      else await supportApi.markTicketSeen(item.ticketId);
+    } catch (e) {
+      // Continue to the request even if marking it read fails.
+    }
+    await loadNotifications();
     navigation.navigate(isStaff ? 'Support' : 'HelpSupport');
   };
 
@@ -313,7 +324,7 @@ export const TopBar = ({ navigation }) => {
               <TouchableOpacity
                 key={`${item.ticketId}-${item.at}`}
                 style={styles.notifItem}
-                onPress={openNotification}
+                onPress={() => openNotification(item)}
                 accessibilityRole="button"
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.primary} />

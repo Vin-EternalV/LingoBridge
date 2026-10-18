@@ -45,6 +45,12 @@ const practiceSessionSchema = new Schema({
     type: Number,
     default: 0
   },
+  // Index of the next question to answer in an unfinished session.
+  currentIndex: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   correctAnswers: {
     type: Number,
     default: 0

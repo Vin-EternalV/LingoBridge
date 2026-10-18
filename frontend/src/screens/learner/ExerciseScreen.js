@@ -23,6 +23,7 @@ const ExerciseScreen = ({ route, navigation }) => {
     currentIndex = 0,
     scoreInfo,
     startedAt,
+    elapsedBefore = 0,
     answers = [],
   } = route.params;
 
@@ -35,6 +36,7 @@ const ExerciseScreen = ({ route, navigation }) => {
   const [error, setError] = useState("");
   const timeLimit = ({ easy: 30, medium: 20, hard: 15 })[String(difficulty || "medium").toLowerCase()] || 20;
   const [secondsLeft, setSecondsLeft] = useState(timeLimit);
+  const [questionStartedAt, setQuestionStartedAt] = useState(startedAt || Date.now());
 
   useEffect(() => {
     if (!exercise) return undefined;
@@ -49,7 +51,8 @@ const ExerciseScreen = ({ route, navigation }) => {
     setSubmitting(false);
     setError("");
     setSecondsLeft(timeLimit);
-  }, [currentIndex, timeLimit]);
+    setQuestionStartedAt(startedAt || Date.now());
+  }, [currentIndex, timeLimit, startedAt]);
 
   useEffect(() => {
     if (secondsLeft === 0 && exercise && !submitting) {
@@ -57,7 +60,8 @@ const ExerciseScreen = ({ route, navigation }) => {
       navigation.navigate("Feedback", {
         feedback: { isCorrect: false, score: 0, correctAnswer: exercise.correctAnswer, explanation: exercise.explanation || "Time ran out. Review this grammar point and try again.", whyIncorrect: "No answer was submitted before the timer ended.", example: "", suggestedImprovement: "", userAnswer: "Time expired", timedOut: true },
         exercise, currentIndex, totalExercises: exercises.length, skill, topic, difficulty, exercises,
-        sessionId, scoreInfo: scoreInfo || { correct: 0, total: 0 }, startedAt: startedAt || Date.now(), answers,
+        sessionId, scoreInfo: scoreInfo || { correct: 0, total: 0 }, startedAt: questionStartedAt, answers,
+        elapsedBefore,
       });
     }
   }, [secondsLeft]);
@@ -112,7 +116,8 @@ const ExerciseScreen = ({ route, navigation }) => {
         exercises,
         sessionId,
         scoreInfo: scoreInfo || { correct: 0, total: 0 },
-        startedAt: startedAt || Date.now(),
+        startedAt: questionStartedAt,
+        elapsedBefore,
         answers,
       });
     } catch (requestError) {

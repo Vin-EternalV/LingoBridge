@@ -93,8 +93,11 @@ exports.createSession = async (req, res, next) => {
 
 exports.updateSession = async (req, res, next) => {
   try {
-    const allowed = ['exercises', 'score', 'totalQuestions', 'correctAnswers', 'accuracy', 'duration', 'status', 'completedAt'];
+    const allowed = ['exercises', 'currentIndex', 'score', 'totalQuestions', 'correctAnswers', 'accuracy', 'duration', 'status', 'completedAt'];
     const update = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+    if (update.currentIndex !== undefined && (!Number.isInteger(update.currentIndex) || update.currentIndex < 0)) {
+      return sendError(res, 'Current question index must be a non-negative integer.', 400);
+    }
     const existing = await PracticeSession.findOne({ _id: req.params.id, userId: req.user.id }).select('status');
     if (!existing) return sendError(res, 'Session not found', 404);
     const session = await PracticeSession.findByIdAndUpdate(existing._id, update, { new: true, runValidators: true });

@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
+import Button from "../../components/Button";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import { getSessionDetail } from "../../api/progress";
+import { getResumeSessionParams } from "../../utils/practiceSession";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
-const HistoryDetailScreen = ({ route }) => {
+const HistoryDetailScreen = ({ route, navigation }) => {
   const { sessionId } = route.params;
   const [session, setSession] = useState(null);
   const [error, setError] = useState("");
@@ -67,6 +69,15 @@ const HistoryDetailScreen = ({ route }) => {
           </View>
         </Card>
 
+        {session.status === "in_progress" && (
+          <Button
+            title="Continue Session"
+            fullWidth
+            style={styles.continueButton}
+            onPress={() => navigation.navigate("Exercise", getResumeSessionParams(session))}
+          />
+        )}
+
         <Text style={styles.heading}>Exercises</Text>
         {(session.exercises || []).map((entry, index) => {
           const exercise = entry.exerciseData || {};
@@ -112,6 +123,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
   scroll: { padding: SPACING.base, paddingBottom: SPACING.xxl },
   summary: { padding: SPACING.xl, alignItems: "center" },
+  continueButton: { marginTop: SPACING.base },
   topic: { ...FONTS.h3, textAlign: "center" },
   muted: { ...FONTS.small, marginTop: 4 },
   stats: {

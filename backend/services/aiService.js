@@ -526,6 +526,16 @@ exports.chatAssistant = async ({ messages, learnerLevel, nativeLanguage }) => {
     throw createError("A message is required.", 400);
   }
 
+  const latestUserMessage = [...safeMessages].reverse().find((message) => message.role === "user")?.content || "";
+  const injectionAttempt = /\b(?:developer\s+mode|jailbreak|prompt\s+injection)\b|\b(?:ignore|disregard|forget|override|bypass|reveal|repeat)\b[\s\S]{0,80}\b(?:system|developer|previous|prior|above|instructions?|rules?|prompt|policy)\b|\b(?:act|pretend|role[ -]?play)\s+(?:as|to be)\b/i.test(latestUserMessage);
+  const programmingRequest = /\b(?:css|html|javascript|typescript|python|java|react|node\.?js|sql|programming|coding)\b|\b(?:write|generate|debug|build|fix)\b.{0,50}\b(?:code|script|website|stylesheet|app)\b/i.test(latestUserMessage);
+  if (injectionAttempt || programmingRequest) {
+    return {
+      data: { response: "I can help with English learning and LingoBridge's learning features. I can't help with that request." },
+      tokensUsed: 0,
+    };
+  }
+
   // Only a language from the official list goes into the prompt.
   const language = findLanguage(nativeLanguage) || "";
   const languageNote = language

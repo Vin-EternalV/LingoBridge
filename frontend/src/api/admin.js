@@ -62,3 +62,8 @@ export const getSupportNotifications = async () => {
   const response = await get('/admin/support/notifications');
   return response.data.data;
 };
+
+export const markSupportNotificationSeen = async (id) => {
+  const response = await post(`/admin/support/${id}/seen`);
+  return response.data.data;
+};

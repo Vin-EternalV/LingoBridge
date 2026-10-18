@@ -69,6 +69,10 @@ const supportTicketSchema = new mongoose.Schema({
   learnerSeenAt: {
     type: Date
   },
+  // When support last opened the current learner activity notification.
+  adminSeenAt: {
+    type: Date
+  },
   replies: [replySchema]
 }, {
   timestamps: true

@@ -107,7 +107,7 @@ exports.getSupportNotifications = async (req, res, next) => {
     const tickets = await SupportTicket.find({ status: { $nin: ['resolved', 'closed'] } })
       .sort('-updatedAt')
       .limit(200)
-      .select({ subject: 1, status: 1, userId: 1, createdAt: 1, replies: { $slice: -1 } })
+      .select({ subject: 1, status: 1, userId: 1, createdAt: 1, adminSeenAt: 1, replies: { $slice: -1 } })
       .populate('userId', 'firstName lastName');
 
     const items = [];
@@ -117,20 +117,40 @@ exports.getSupportNotifications = async (req, res, next) => {
       const name = person ? `${person.firstName} ${person.lastName}`.trim() : 'A learner';
 
       if (!last && ticket.status === 'open') {
-        items.push({ ticketId: ticket._id, kind: 'new_request', name, subject: ticket.subject, at: ticket.createdAt });
+        if (!ticket.adminSeenAt || ticket.adminSeenAt < ticket.createdAt) {
+          items.push({ ticketId: ticket._id, kind: 'new_request', name, subject: ticket.subject, at: ticket.createdAt });
+        }
       } else if (last && last.from === 'learner') {
-        items.push({
-          ticketId: ticket._id,
-          kind: 'learner_reply',
-          name,
-          subject: ticket.subject,
-          preview: String(last.message || '').slice(0, 80),
-          at: last.createdAt
-        });
+        if (!ticket.adminSeenAt || ticket.adminSeenAt < last.createdAt) {
+          items.push({
+            ticketId: ticket._id,
+            kind: 'learner_reply',
+            name,
+            subject: ticket.subject,
+            preview: String(last.message || '').slice(0, 80),
+            at: last.createdAt
+          });
+        }
       }
     });
 
     sendSuccess(res, { count: items.length, items: items.slice(0, 10) }, 'Notifications retrieved');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.markSupportNotificationSeen = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 'Invalid support request id.', 400);
+    }
+    await SupportTicket.updateOne(
+      { _id: req.params.id },
+      { $set: { adminSeenAt: new Date() } },
+      { timestamps: false }
+    );
+    sendSuccess(res, {}, 'Support notification marked as read');
   } catch (err) {
     next(err);
   }

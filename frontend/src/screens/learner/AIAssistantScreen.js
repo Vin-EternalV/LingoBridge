@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import ChatBubble from "../../components/ChatBubble";
 import Header from "../../components/Header";
-import { sendChatMessage } from "../../api/ai";
+import { sendChatMessage, getChatHistory } from "../../api/ai";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
 const SUGGESTIONS = [
@@ -35,8 +35,30 @@ const AIAssistantScreen = () => {
 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   const flatListRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    getChatHistory()
+      .then((history) => {
+        if (!active || !history?.enabled) return;
+        const restored = (history.messages || []).map((message, index) => ({
+          id: `saved-${index}-${message.createdAt || "message"}`,
+          text: message.content,
+          isUser: message.role === "user",
+        }));
+        if (restored.length) setMessages((current) => [current[0], ...restored]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Web: Enter sends the message and Shift+Enter adds a new line.
   const handleKeyPress = (e) => {
@@ -49,7 +71,7 @@ const AIAssistantScreen = () => {
   const sendMessage = async (text) => {
     const trimmedText = text.trim();
 
-    if (!trimmedText || isLoading) {
+    if (!trimmedText || isLoading || historyLoading) {
       return;
     }
 
@@ -66,17 +88,6 @@ const AIAssistantScreen = () => {
 
     try {
       /*
-       * Build conversation history.
-       *
-       * We don't send the welcome message because it isn't
-       * part of the actual conversation.
-       */
-      const history = messages.slice(1).map((message) => ({
-        role: message.isUser ? "user" : "assistant",
-        content: message.text,
-      }));
-
-      /*
        * Send the message to our backend.
        *
        * The frontend NEVER talks directly to Gemini.
@@ -87,7 +98,7 @@ const AIAssistantScreen = () => {
        *    ↓
        * Gemini API
        */
-      const response = await sendChatMessage(trimmedText, history);
+      const response = await sendChatMessage(trimmedText);
 
       if (!response || !response.response) {
         throw new Error("The AI returned an empty response.");
@@ -141,7 +152,7 @@ const AIAssistantScreen = () => {
       key={suggestion}
       style={styles.suggestionBadge}
       onPress={() => sendMessage(suggestion)}
-      disabled={isLoading}
+      disabled={isLoading || historyLoading}
       activeOpacity={0.7}
     >
       <Text style={styles.suggestionText}>{suggestion}</Text>
@@ -192,7 +203,7 @@ const AIAssistantScreen = () => {
             onChangeText={setInputText}
             multiline
             maxLength={500}
-            editable={!isLoading}
+            editable={!isLoading && !historyLoading}
             returnKeyType="send"
             onKeyPress={handleKeyPress}
             {...(Platform.OS === "web"
@@ -203,10 +214,10 @@ const AIAssistantScreen = () => {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
+              (!inputText.trim() || isLoading || historyLoading) && styles.sendButtonDisabled,
             ]}
             onPress={() => sendMessage(inputText)}
-            disabled={!inputText.trim() || isLoading}
+            disabled={!inputText.trim() || isLoading || historyLoading}
             activeOpacity={0.7}
           >
             <Ionicons name="send" size={20} color={COLORS.onPrimary} />

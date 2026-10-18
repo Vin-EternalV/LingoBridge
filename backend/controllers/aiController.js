@@ -1,6 +1,8 @@
 // controllers/aiController.js
 const aiService = require("../services/aiService");
 const { logAIInteraction } = require("../utils/aiLogger");
+const AIInteraction = require("../models/AIInteraction");
+const LearningProfile = require("../models/LearningProfile");
 const SurveyResponse = require("../models/SurveyResponse"); // NEW
 const User = require("../models/User");
 const { sendSuccess, sendError } = require("../utils/responseHelper");
@@ -9,7 +11,7 @@ const SKILLS = ["grammar", "vocabulary", "reading", "speaking", "writing"];
 
 exports.chat = async (req, res, next) => {
   try {
-    const { message, chatHistory, learnerLevel } = req.body;
+    const { message } = req.body;
     if (
       !message ||
       typeof message !== "string" ||
@@ -22,11 +24,33 @@ exports.chat = async (req, res, next) => {
       );
     }
 
-    const account = await User.findById(req.user.id).select("nativeLanguage");
+    const [account, learningProfile] = await Promise.all([
+      User.findById(req.user.id).select("nativeLanguage"),
+      LearningProfile.findOne({ userId: req.user.id }).select("englishLevel"),
+    ]);
+    // Rebuild context from this user's saved turns. Never trust client-supplied
+    // assistant messages, which could impersonate the system or tutor.
+    const previousTurns = req.user.settings?.privacy?.saveAiHistory === false
+      ? []
+      : await AIInteraction.find({
+          userId: req.user.id,
+          type: "assistant_chat",
+          success: true,
+          prompt: { $type: "string" },
+          response: { $exists: true },
+        })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select("prompt response")
+          .lean();
+    const historyMessages = previousTurns.reverse().flatMap((turn) => [
+      { role: "user", content: turn.prompt },
+      { role: "assistant", content: turn.response?.response || "" },
+    ]).filter((item) => item.content);
 
     const { data, tokensUsed } = await aiService.chatAssistant({
-      messages: [...(chatHistory || []), { role: "user", content: message }],
-      learnerLevel,
+      messages: [...historyMessages, { role: "user", content: message }],
+      learnerLevel: learningProfile?.englishLevel,
       nativeLanguage: account?.nativeLanguage,
     });
 
@@ -45,6 +69,33 @@ exports.chat = async (req, res, next) => {
       success: false,
       errorMessage: err.message,
     });
+    next(err);
+  }
+};
+
+exports.getChatHistory = async (req, res, next) => {
+  try {
+    const enabled = req.user.settings?.privacy?.saveAiHistory !== false;
+    if (!enabled) return sendSuccess(res, { enabled: false, messages: [] }, "AI history is disabled");
+
+    const turns = await AIInteraction.find({
+      userId: req.user.id,
+      type: "assistant_chat",
+      success: true,
+      prompt: { $type: "string" },
+      response: { $exists: true },
+    })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .select("prompt response createdAt")
+      .lean();
+
+    const messages = turns.reverse().flatMap((turn) => [
+      { role: "user", content: turn.prompt, createdAt: turn.createdAt },
+      { role: "assistant", content: turn.response?.response || "", createdAt: turn.createdAt },
+    ]).filter((item) => item.content);
+    sendSuccess(res, { enabled: true, messages }, "AI history retrieved");
+  } catch (err) {
     next(err);
   }
 };

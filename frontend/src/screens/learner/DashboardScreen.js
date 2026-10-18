@@ -13,6 +13,7 @@ import { getSuggestions } from "../../api/ai";
 import { getMySurvey } from "../../api/survey";
 import { getErrorMessage } from "../../utils/errors";
 import { timeAgo, currentStreak, titleCase } from "../../utils/format";
+import { getResumeSessionParams } from "../../utils/practiceSession";
 import { AREAS, TOPICS_BY_SKILL, levelLabel } from "../../constants/learningOptions";
 import { COLORS, FONTS, RADIUS, SPACING } from "../../constants/theme";
 
@@ -60,7 +61,7 @@ const DashboardScreen = ({ navigation }) => {
   const loadData = useCallback(async () => {
     const [progressRes, historyRes, suggestionsRes, surveyRes] = await Promise.allSettled([
       getProgress(),
-      getHistory({ limit: 5 }),
+      getHistory({ limit: 50 }),
       getSuggestions(),
       getMySurvey(),
     ]);
@@ -106,12 +107,19 @@ const DashboardScreen = ({ navigation }) => {
 
   const goToProgress = () => navigation.navigate("ProgressTab");
 
-  // Continue Learning: repeat the most recent session's skill and topic.
+  // Resume an unfinished session first; completed sessions can be practiced again.
   const lastSession = sessions[0];
+  const unfinishedSession = sessions.find((session) => session.status === "in_progress");
   const reviewSkill = pickReviewSkill(progress, suggestions, profile);
-  const continueAction = lastSession
+  const continueAction = unfinishedSession
     ? {
         title: "Continue Learning",
+        desc: `${titleCase(unfinishedSession.skill)}: ${unfinishedSession.topic}`,
+        onPress: () => navigation.navigate("Exercise", getResumeSessionParams(unfinishedSession)),
+      }
+    : lastSession
+    ? {
+        title: "Practice Again",
         desc: `${titleCase(lastSession.skill)}: ${lastSession.topic}`,
         onPress: () => startPractice(lastSession.skill, lastSession.topic, lastSession.difficulty || "medium"),
       }

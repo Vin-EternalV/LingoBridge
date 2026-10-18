@@ -158,6 +158,7 @@ const AIAssistantScreen = () => {
       >
         <FlatList
           ref={flatListRef}
+          style={styles.messageList}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -219,14 +220,29 @@ const AIAssistantScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    minWidth: 0,
+    alignSelf: "stretch",
+    overflow: "hidden",
     backgroundColor: COLORS.background,
   },
 
   container: {
     flex: 1,
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
+  },
+
+  messageList: {
+    flex: 1,
+    width: "100%",
+    minWidth: 0,
   },
 
   chatList: {
+    flexGrow: 1,
+    width: "100%",
+    minWidth: 0,
     padding: SPACING.base,
     paddingBottom: SPACING.xl,
   },
@@ -265,6 +281,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
+    width: "100%",
+    minWidth: 0,
     padding: SPACING.base,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
@@ -273,6 +291,7 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,

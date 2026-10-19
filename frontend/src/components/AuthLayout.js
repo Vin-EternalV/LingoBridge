@@ -8,7 +8,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { SPACING } from "../constants/theme";
+import { COLORS, SPACING } from "../constants/theme";
 
 const AuthLayout = ({ children, maxWidth = 560, title, subtitle }) => (
   <KeyboardAvoidingView
@@ -43,16 +43,16 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
   },
   card: {
-    width: "100%", alignSelf: "center", backgroundColor: "#FFFFFF",
-    borderRadius: 24, borderWidth: 1, borderColor: "#DCEAE5",
+    width: "100%", alignSelf: "center", backgroundColor: COLORS.card,
+    borderRadius: 24, borderWidth: 1, borderColor: COLORS.border,
     padding: 30, shadowColor: "#183B34", shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.08, shadowRadius: 24, elevation: 4,
   },
   brandRow: { flexDirection: "row", alignItems: "center", marginBottom: 26 },
-  brandMark: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#163832", alignItems: "center", justifyContent: "center", marginRight: 10 },
-  brandName: { fontSize: 21, fontWeight: "600", color: "#163832" },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: "700", color: "#202B3E", marginBottom: 4 },
-  subtitle: { fontSize: 15, lineHeight: 22, color: "#6B7F9D", marginBottom: 24 },
+  brandMark: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  brandName: { fontSize: 21, fontWeight: "600", color: COLORS.text },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
+  subtitle: { fontSize: 15, lineHeight: 22, color: COLORS.textSecondary, marginBottom: 24 },
 });
 
 export default AuthLayout;

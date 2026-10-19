@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.card,
     flexDirection: "row",
     gap: SPACING.sm,
   },

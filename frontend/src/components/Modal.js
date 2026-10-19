@@ -20,6 +20,7 @@ const Modal = ({
   footer,
   size = "md",
   scrollable = true,
+  showDividers = false,
 }) => {
   const maxWidth = size === "sm" ? 360 : size === "lg" ? 720 : 480;
   const Body = scrollable ? ScrollView : View;
@@ -34,7 +35,7 @@ const Modal = ({
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
             <View style={[styles.sheet, { maxWidth }]}>
-              <View style={styles.header}>
+              <View style={[styles.header, !showDividers && styles.noHeaderDivider]}>
                 <Text style={styles.title} numberOfLines={2}>
                   {title}
                 </Text>
@@ -59,7 +60,7 @@ const Modal = ({
               >
                 {children}
               </Body>
-              {footer ? <View style={styles.footer}>{footer}</View> : null}
+              {footer ? <View style={[styles.footer, !showDividers && styles.noFooterDivider]}>{footer}</View> : null}
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -97,6 +98,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  noHeaderDivider: { borderBottomWidth: 0 },
   title: { ...FONTS.h4, flex: 1, paddingRight: SPACING.sm },
   close: { padding: SPACING.xs },
   body: { paddingHorizontal: SPACING.lg },
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.sm,
   },
+  noFooterDivider: { borderTopWidth: 0 },
 });
 
 export default Modal;

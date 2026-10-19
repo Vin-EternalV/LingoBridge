@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, Platform, ScrollView, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/Button";
+import AppearanceToggle from "../../components/AppearanceToggle";
 import { COLORS, FONTS, SPACING } from "../../constants/theme";
 
 const WelcomeScreen = ({ navigation }) => {
@@ -11,6 +12,7 @@ const WelcomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.centerOuter} showsVerticalScrollIndicator={false}>
         <View style={styles.inner}>
+          <View style={styles.themeControl}><AppearanceToggle /></View>
           <View style={styles.header}>
             <View style={styles.brandMark}><Ionicons name="book" size={22} color="#FFFFFF" /></View>
             <Text style={styles.appName}>LingoBridge</Text>
@@ -64,6 +66,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 1300,
   },
+  themeControl: { alignItems: "flex-end", marginBottom: SPACING.sm },
   header: { alignItems: "center", marginBottom: 28 },
   brandMark: { width: 48, height: 48, borderRadius: 15, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   appName: { ...FONTS.h1, color: COLORS.primary, marginBottom: 4 },

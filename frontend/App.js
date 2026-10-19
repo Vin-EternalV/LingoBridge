@@ -17,11 +17,7 @@ export default function App() {
   const AppNavigator = require("./src/navigation/AppNavigator").default;
   const { AuthProvider } = require("./src/contexts/AuthContext");
   const DialogHost = require("./src/components/DialogHost").default;
-  const {
-    default: BackgroundLayer,
-    setBackgroundImageState,
-  } = require("./src/components/BackgroundLayer");
-  setBackgroundImageState(appearance.backgroundImageUri, appearance.backgroundImage?.text);
+  const BackgroundLayer = require("./src/components/BackgroundLayer").default;
   const isDark = appearance.scheme === "dark";
 
   const navTheme = {
@@ -53,10 +49,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <BackgroundLayer
-        uri={appearance.backgroundImageUri}
-        text={appearance.backgroundImage?.text}
-      >
+      <BackgroundLayer>
         <AuthProvider>
           <NavigationContainer theme={navTheme} linking={linking}>
             <AppNavigator />

@@ -6,9 +6,6 @@ import { confirmAction } from '../../utils/dialog';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import BackgroundColorPicker from '../../components/BackgroundColorPicker';
-import BackgroundImagePicker from '../../components/BackgroundImagePicker';
-import { applyBackgroundImage, loadBackgroundImageState, sameImage } from '../../utils/backgroundImage';
 import SectionLabel from '../../components/SectionLabel';
 import StatusMessage from '../../components/StatusMessage';
 import { COLORS, FONTS, FONT_SCALES, RADIUS, SPACING } from '../../constants/theme';
@@ -42,44 +39,26 @@ const AppearanceScreen = () => {
   const [saved, setSaved] = useState(null);
   const [theme, setTheme] = useState('light');
   const [textSize, setTextSize] = useState('default');
-  const [backgroundColor, setBackgroundColor] = useState(null);
-  const [backgroundImage, setBackgroundImage] = useState(null);
-  const [savedImage, setSavedImage] = useState(null);
   const [status, setStatus] = useState(null);
 
   useEffect(() => {
     loadAppearancePrefs().then(async (prefs) => {
-      const image = await loadBackgroundImageState(prefs);
-      setSavedImage(image);
-      setBackgroundImage(image);
       setSaved(prefs);
       setTheme(prefs.theme);
       setTextSize(prefs.textSize);
-      setBackgroundColor(prefs.backgroundColor || null);
       setLoading(false);
     });
   }, []);
 
   const dirty =
     !!saved &&
-    (theme !== saved.theme ||
-      textSize !== saved.textSize ||
-      (backgroundColor || null) !== (saved.backgroundColor || null) ||
-      !sameImage(backgroundImage, savedImage));
+    (theme !== saved.theme || textSize !== saved.textSize);
   const scale = FONT_SCALES[textSize] || 1;
 
   const handleApply = async () => {
-    let imagePrefs;
-    try {
-      imagePrefs = await applyBackgroundImage(backgroundImage);
-    } catch (e) {
-      setStatus({ type: 'error', message: e.message });
-      return;
-    }
-    const prefs = { theme, textSize, backgroundColor, backgroundImage: imagePrefs };
+    const prefs = { theme, textSize };
     await saveAppearancePrefs(prefs);
     setSaved(prefs);
-    setSavedImage(backgroundImage);
     setStatus(null);
 
     const restart = await confirmAction(
@@ -121,16 +100,6 @@ const AppearanceScreen = () => {
           </Option>
         ))}
       </View>
-
-      <SectionLabel hint="Pick any color for the app background. It replaces the Light/Dark background; choose the first circle to go back to the theme default.">
-        Background color
-      </SectionLabel>
-      <BackgroundColorPicker value={backgroundColor} onChange={setBackgroundColor} />
-
-      <SectionLabel hint="Use a picture from your gallery or computer. It replaces the background color.">
-        Background picture
-      </SectionLabel>
-      <BackgroundImagePicker image={backgroundImage} onChange={setBackgroundImage} />
 
       <SectionLabel hint="Makes text larger across the app.">Text size</SectionLabel>
       <View style={styles.optionRow}>

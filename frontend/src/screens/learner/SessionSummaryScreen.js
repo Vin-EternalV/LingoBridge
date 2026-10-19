@@ -135,7 +135,7 @@ const SessionSummaryScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { padding: SPACING.xl, paddingBottom: SPACING.base },
   header: {
     alignItems: "center",

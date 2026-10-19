@@ -141,7 +141,7 @@ const PlatformAnalyticsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { padding: SPACING.base },
   pageTitle: { ...FONTS.h2, marginBottom: SPACING.base },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: SPACING.base },

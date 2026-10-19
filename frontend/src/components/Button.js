@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 const Button = ({
@@ -10,6 +10,8 @@ const Button = ({
   loading = false,
   style,
   fullWidth = false,
+  numberOfLines,
+  noWrap = false,
 }) => {
   const getContainerStyle = () => {
     const styles = [defaultStyles.container];
@@ -78,7 +80,12 @@ const Button = ({
       {loading ? (
         <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? COLORS.white : COLORS.primary} />
       ) : (
-        <Text style={getTextStyle()}>{title}</Text>
+        <Text
+          numberOfLines={numberOfLines}
+          style={[getTextStyle(), noWrap && styles.noWrapText]}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -126,6 +133,10 @@ const defaultStyles = StyleSheet.create({
     ...FONTS.h4,
     textAlign: 'center',
   },
+});
+
+const styles = StyleSheet.create({
+  noWrapText: Platform.select({ web: { whiteSpace: 'nowrap', flexShrink: 0 } }),
 });
 
 export default Button;

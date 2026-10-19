@@ -22,7 +22,6 @@ const AdminNavigation = () => {
       {...(enabled
         ? {
             tabBar: (props) => <Sidebar {...props} icons={ADMIN_ICONS} caption="Admin" />,
-            sceneContainerStyle: { marginLeft: sidebarWidth },
           }
         : {})}
       screenOptions={({ route }) => ({
@@ -44,6 +43,7 @@ const AdminNavigation = () => {
         headerShown: enabled,
         header: (props) => <TopBar {...props} />,
       })}
+      sceneContainerStyle={{ marginLeft: enabled ? sidebarWidth : 0, backgroundColor: 'transparent' }}
     >
       <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
       <Tab.Screen name="Survey Insights" component={SurveyInsightsScreen} />

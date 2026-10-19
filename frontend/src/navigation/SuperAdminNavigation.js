@@ -23,7 +23,6 @@ const SuperAdminNavigation = () => {
       {...(enabled
         ? {
             tabBar: (props) => <Sidebar {...props} icons={SUPERADMIN_ICONS} caption="Super Admin" />,
-            sceneContainerStyle: { marginLeft: sidebarWidth },
           }
         : {})}
       screenOptions={({ route }) => ({
@@ -46,6 +45,7 @@ const SuperAdminNavigation = () => {
         headerShown: enabled,
         header: (props) => <TopBar {...props} />,
       })}
+      sceneContainerStyle={{ marginLeft: enabled ? sidebarWidth : 0, backgroundColor: 'transparent' }}
     >
       <Tab.Screen name="Dashboard" component={SuperAdminDashboardScreen} />
       <Tab.Screen name="Admins" component={AdminManagementScreen} />

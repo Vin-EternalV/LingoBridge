@@ -217,7 +217,7 @@ const LearningContentScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   container: { flex: 1, padding: SPACING.base },
   scroll: { flex: 1 },
   scrollContent: { padding: SPACING.base, paddingBottom: SPACING.xxxl },

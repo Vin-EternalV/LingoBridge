@@ -44,6 +44,7 @@ export default function DialogHost() {
                 variant="outline"
                 onPress={() => close(false)}
                 fullWidth
+                style={styles.actionButton}
               />
             </View>
             <View style={styles.half}>
@@ -52,6 +53,9 @@ export default function DialogHost() {
                 variant={dialog.destructive ? "danger" : "primary"}
                 onPress={() => close(true)}
                 fullWidth
+                numberOfLines={1}
+                noWrap
+                style={styles.actionButton}
               />
             </View>
           </View>
@@ -69,4 +73,5 @@ const styles = StyleSheet.create({
   message: { ...FONTS.regular, color: COLORS.text, lineHeight: 22 },
   row: { flexDirection: "row", gap: SPACING.sm, width: "100%" },
   half: { flex: 1 },
+  actionButton: { height: 56, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, flexShrink: 1 },
 });

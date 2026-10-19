@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignSelf: "stretch",
     overflow: "hidden",
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
   },
 
   container: {

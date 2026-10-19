@@ -36,7 +36,6 @@ const LearnerTabs = () => {
         ? {
             // Profile lives in the avatar menu at the top, so it is not listed in the sidebar.
             tabBar: (props) => <Sidebar {...props} hidden={['ProfileTab']} />,
-            sceneContainerStyle: { marginLeft: sidebarWidth },
           }
         : {})}
       screenOptions={({ route }) => ({
@@ -70,6 +69,7 @@ const LearnerTabs = () => {
         headerShown: enabled,
         header: (props) => <TopBar {...props} />,
       })}
+      sceneContainerStyle={{ marginLeft: enabled ? sidebarWidth : 0, backgroundColor: 'transparent' }}
     >
       <Tab.Screen name="Home" component={DashboardScreen} />
       <Tab.Screen name="PracticeTab" component={PracticeScreen} options={{ title: 'Practice' }} />

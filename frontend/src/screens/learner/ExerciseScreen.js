@@ -213,7 +213,7 @@ const ExerciseScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   loading: {
     flex: 1,
     justifyContent: "center",

@@ -302,7 +302,7 @@ const IeltsListeningTaskScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   content: { padding: SPACING.base, paddingBottom: SPACING.xxxl, ...Platform.select({ web: { maxWidth: 760, width: '100%', alignSelf: 'center' } }) },
   player: { padding: SPACING.base },
   playerHead: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },

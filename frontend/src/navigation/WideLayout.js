@@ -10,10 +10,8 @@ import { loadAppearancePrefs, saveAppearancePrefs, effectiveScheme, reloadApp } 
 import * as supportApi from '../api/support';
 import * as adminApi from '../api/admin';
 import { onNotificationsChanged, timeAgo } from '../utils/notifications';
-import AppearanceModal from '../components/AppearanceModal';
 import ProfilePhotoModal from '../components/ProfilePhotoModal';
 import Avatar from '../components/Avatar';
-import { removeBackgroundImage } from '../utils/backgroundImage';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 export const SIDEBAR_WIDTH = 220;
@@ -166,14 +164,13 @@ export const Sidebar = ({ state, descriptors, navigation, icons = LEARNER_ICONS,
 
 // Pass as screenOptions={{ headerShown: true, header: (props) => <TopBar {...props} /> }}
 // Bell: new support activity (learners: replies to their requests; admin / superadmin: requests waiting for an answer).
-// Avatar menu: learners get Profile and Log Out; admin / superadmin get Profile photo, Background and Log Out.
+// Avatar menu: learners get Profile and Log Out; admin / superadmin get Profile photo and Log Out.
 export const TopBar = ({ navigation }) => {
   const { user, logout } = useAuth();
   const { sidebarWidth, bottom } = useShell();
   const insets = useSafeAreaInsets();
   const [scheme, setScheme] = useState('light');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notif, setNotif] = useState({ count: 0, items: [] });
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -244,13 +241,10 @@ export const TopBar = ({ navigation }) => {
   // Styles are built once at load time, so (like the Appearance screen) a theme change reloads the app.
   const toggleTheme = async () => {
     const prefs = await loadAppearancePrefs();
-    // The quick toggle also clears any custom background color or picture so it always switches Light <-> Dark.
-    await removeBackgroundImage();
+    // Clear a saved picture so the quick toggle switches directly between Light and Dark.
     await saveAppearancePrefs({
       ...prefs,
       theme: scheme === 'dark' ? 'light' : 'dark',
-      backgroundColor: null,
-      backgroundImage: null,
     });
     reloadApp();
   };
@@ -389,17 +383,6 @@ export const TopBar = ({ navigation }) => {
             <Ionicons name="camera-outline" size={18} color={COLORS.textSecondary} />
             <Text style={styles.menuItemTextNeutral}>Profile photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              setMenuOpen(false);
-              setAppearanceOpen(true);
-            }}
-            accessibilityRole="button"
-          >
-            <Ionicons name="color-palette-outline" size={18} color={COLORS.textSecondary} />
-            <Text style={styles.menuItemTextNeutral}>Background</Text>
-          </TouchableOpacity>
             </>
           ) : (
             <TouchableOpacity
@@ -421,7 +404,6 @@ export const TopBar = ({ navigation }) => {
         </View>
       )}
 
-      <AppearanceModal visible={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
       <ProfilePhotoModal visible={photoOpen} onClose={() => setPhotoOpen(false)} />
     </View>
   );
@@ -434,7 +416,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'transparent',
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
     paddingHorizontal: SPACING.md,
@@ -473,7 +455,7 @@ const styles = StyleSheet.create({
   itemText: { ...FONTS.small, color: COLORS.textSecondary },
   itemTextActive: { color: COLORS.primary, fontWeight: '600' },
   bottomBar: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: SPACING.xs,
@@ -501,7 +483,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     height: 56,
     paddingRight: SPACING.lg,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     zIndex: 10,

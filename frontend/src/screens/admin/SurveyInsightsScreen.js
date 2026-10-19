@@ -144,7 +144,7 @@ const SurveyInsightsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   content: { padding: SPACING.base, paddingBottom: SPACING.xxxl },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SPACING.base },
   titleCopy: { flex: 1, paddingRight: SPACING.sm },

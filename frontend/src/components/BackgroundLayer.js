@@ -1,35 +1,20 @@
 import React from 'react';
-import { View, ImageBackground, StyleSheet } from 'react-native';
-
-// text: 'dark' = dark text on the picture (light veil), 'light' = light text (dark veil).
-export const scrimFor = (text) => (text === 'light' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.55)');
+import { View, StyleSheet } from 'react-native';
 
 // Draws the picture behind its children. Screens use a transparent background while a picture is active.
-const BackgroundLayer = ({ uri, text, children }) => (
-  <View style={[styles.root, { backgroundColor: text === 'light' ? '#0F172A' : '#F8FAFC' }]}>
-    {!!uri && (
-      <ImageBackground source={{ uri }} resizeMode="cover" style={StyleSheet.absoluteFill}>
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: scrimFor(text) }]} />
-      </ImageBackground>
-    )}
+const BackgroundLayer = ({ children }) => (
+  <View style={styles.root}>
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View style={[styles.orb, styles.mintOrb]} />
+      <View style={[styles.orb, styles.blueOrb]} />
+      <View style={[styles.orb, styles.goldOrb]} />
+    </View>
     {children}
   </View>
 );
 
-// ---- Per-screen backgrounds ----
-// On phones the stack navigator puts every screen in its own native layer with an opaque backdrop,
-// so a picture drawn once at the root would be hidden behind it. Each screen therefore draws its own copy.
-let current = { uri: null, text: 'dark' };
-
-// Called once from App.js (before the navigators render) with the picture chosen on this device.
-export const setBackgroundImageState = (uri, text) => {
-  current = { uri: uri || null, text: text === 'light' ? 'light' : 'dark' };
-};
-
 export const ScreenBackground = ({ children }) => (
-  <BackgroundLayer uri={current.uri} text={current.text}>
-    {children}
-  </BackgroundLayer>
+  <BackgroundLayer>{children}</BackgroundLayer>
 );
 
 const cache = new WeakMap();
@@ -37,7 +22,6 @@ const cache = new WeakMap();
 // Wraps a screen component so it is drawn on top of the picture. Returns the screen unchanged
 // when no picture is set, and always returns the same wrapper for the same screen (no remounting).
 export const withBackground = (Component) => {
-  if (!current.uri) return Component;
   if (!cache.has(Component)) {
     const Wrapped = (props) => (
       <ScreenBackground>
@@ -50,6 +34,12 @@ export const withBackground = (Component) => {
   return cache.get(Component);
 };
 
-const styles = StyleSheet.create({ root: { flex: 1 } });
+const styles = StyleSheet.create({
+  root: { flex: 1, overflow: 'hidden', backgroundColor: '#F2F8F5' },
+  orb: { position: 'absolute', borderRadius: 9999 },
+  mintOrb: { width: 550, height: 550, top: -243, left: -202, backgroundColor: '#E6F3EF' },
+  blueOrb: { width: 450, height: 450, top: 130, right: -225, backgroundColor: '#E7F0FA' },
+  goldOrb: { width: 280, height: 280, bottom: -188, left: '22%', backgroundColor: '#FBF2DF' },
+});
 
 export default BackgroundLayer;

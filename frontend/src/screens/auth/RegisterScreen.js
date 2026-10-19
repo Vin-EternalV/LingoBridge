@@ -148,7 +148,7 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
-    <AuthLayout maxWidth={520}>
+    <AuthLayout maxWidth={700} title="Create your account" subtitle="Start building your English confidence with practice made for you.">
       <ErrorMessage message={error} />
       <Text style={styles.requiredNote}>
         <Text style={styles.asterisk}>*</Text> Required fields

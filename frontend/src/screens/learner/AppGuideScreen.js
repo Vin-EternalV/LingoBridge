@@ -75,7 +75,7 @@ const AppGuideScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background, ...Platform.select({ web: { alignItems: 'center' } }) },
+  safeArea: { flex: 1, backgroundColor: 'transparent', ...Platform.select({ web: { alignItems: 'center' } }) },
   top: { width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.base, paddingTop: SPACING.base },
   counter: { ...FONTS.small, color: COLORS.textSecondary, fontWeight: '600' },
   skip: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },

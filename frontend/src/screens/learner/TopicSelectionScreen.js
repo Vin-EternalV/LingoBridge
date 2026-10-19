@@ -156,7 +156,7 @@ const TopicSelectionScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     padding: SPACING.base,

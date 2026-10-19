@@ -158,7 +158,7 @@ const PracticeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   scroll: { padding: SPACING.base, paddingBottom: SPACING.xxl },
   intro: {
     ...FONTS.small,

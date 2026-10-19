@@ -49,7 +49,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout title="Welcome back" subtitle="Log in to continue your English-learning journey.">
       <ErrorMessage message={error} />
       <Input
         label="Email"

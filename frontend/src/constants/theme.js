@@ -87,59 +87,10 @@ export const SHADOWS = {
 
 export const FONT_SCALES = { default: 1, large: 1.15, xlarge: 1.3 };
 
-// ---- Custom background colour helpers ----
-// Accepts '#RGB', '#RRGGBB' (with or without '#') and returns '#RRGGBB', or null if invalid.
-export const normalizeHex = (value) => {
-  if (typeof value !== 'string') return null;
-  const match = value.trim().match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (!match) return null;
-  let hex = match[1];
-  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
-  return `#${hex.toUpperCase()}`;
-};
-
-const toRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-const toHex = (rgb) =>
-  `#${rgb
-    .map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase()}`;
-const mix = (a, b, t) => {
-  const ra = toRgb(a);
-  const rb = toRgb(b);
-  return toHex(ra.map((v, i) => v + (rb[i] - v) * t));
-};
-const luminance = (hex) => {
-  const [r, g, b] = toRgb(hex).map((v) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-// For a chosen background colour, returns the palette scheme that keeps text readable
-// ('dark' = light text) plus the colours to override (background, cards, borders).
-export const deriveBackgroundPalette = (hex) => {
-  const bg = normalizeHex(hex);
-  if (!bg) return null;
-  if (luminance(bg) < 0.18) {
-    const surface = mix(bg, '#FFFFFF', 0.08);
-    return { scheme: 'dark', overrides: { background: bg, white: surface, card: surface, border: mix(bg, '#FFFFFF', 0.2) } };
-  }
-  return { scheme: 'light', overrides: { background: bg, white: '#FFFFFF', card: '#FFFFFF', border: mix(bg, '#000000', 0.12) } };
-};
-
-// scheme: 'light' | 'dark'; fontScale: number; backgroundColor: optional hex that replaces the theme background;
-// backgroundImage: optional { text: 'light' | 'dark' } - a picture is shown behind the app (see BackgroundLayer),
-// so screens become transparent and `text` says which text colour reads well on it.
-// Returns the scheme actually applied (a custom colour or picture can switch light <-> dark text for readability).
-export const applyAppearance = ({ scheme = 'light', fontScale = 1, backgroundColor = null, backgroundImage = null } = {}) => {
-  const custom = backgroundImage ? null : deriveBackgroundPalette(backgroundColor);
-  let effective = custom ? custom.scheme : scheme;
-  if (backgroundImage) effective = backgroundImage.text === 'light' ? 'dark' : 'light';
+// scheme: 'light' | 'dark'; fontScale: number.
+export const applyAppearance = ({ scheme = 'light', fontScale = 1 } = {}) => {
+  const effective = scheme;
   Object.assign(COLORS, effective === 'dark' ? DARK_COLORS : LIGHT_COLORS);
-  if (custom) Object.assign(COLORS, custom.overrides);
-  if (backgroundImage) COLORS.background = 'transparent';
   const fonts = buildFonts(fontScale);
   Object.keys(fonts).forEach((key) => {
     FONTS[key] = fonts[key];

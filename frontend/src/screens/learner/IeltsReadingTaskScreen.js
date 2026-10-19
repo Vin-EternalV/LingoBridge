@@ -219,7 +219,7 @@ const IeltsReadingTaskScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   timerBar: {
     flexDirection: 'row',
     alignItems: 'center',

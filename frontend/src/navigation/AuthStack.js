@@ -18,8 +18,9 @@ const AuthStack = () => {
   return (
     <Stack.Navigator
       screenOptions={{
+        contentStyle: { backgroundColor: "transparent" },
         headerShown: Platform.OS !== "web",
-        headerStyle: { backgroundColor: COLORS.white },
+        headerStyle: { backgroundColor: "transparent" },
         headerTintColor: COLORS.primary,
         headerTitleStyle: { fontWeight: "600" },
         headerShadowVisible: false,
@@ -34,12 +35,12 @@ const AuthStack = () => {
       <Stack.Screen
         name="Login"
         component={withBackground(LoginScreen)}
-        options={{ title: "Log In" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Register"
         component={withBackground(RegisterScreen)}
-        options={{ title: "Create Account" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="LegalDocument" component={withBackground(LegalDocumentScreen)} options={{ title: "Legal information" }} />
       <Stack.Screen

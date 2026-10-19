@@ -125,7 +125,7 @@ const HistoryDetailScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: { flex: 1, backgroundColor: "transparent" },
   scroll: { padding: SPACING.base, paddingBottom: SPACING.xxl },
   summary: { padding: SPACING.xl, alignItems: "center" },
   continueButton: { marginTop: SPACING.base },

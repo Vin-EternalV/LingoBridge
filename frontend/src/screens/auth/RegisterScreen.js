@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Input from "../../components/Input";
 import Dropdown from "../../components/Dropdown";
 import Button from "../../components/Button";
@@ -9,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getErrorMessage } from "../../utils/errors";
 import { COLORS, FONTS, SPACING } from "../../constants/theme";
 import { LIMITS } from "../../constants/limits";
+import { CURRENT_TERMS_VERSION } from "../legal/LegalDocumentScreen";
 
 // Same rule as the server: 7-20 characters, digits, spaces, dashes, brackets, optional leading +
 const PHONE_PATTERN = /^\+?[\d\s\-()]{7,20}$/;
@@ -57,6 +59,7 @@ const RegisterScreen = ({ navigation }) => {
   const [birthYear, setBirthYear] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { register } = useAuth();
 
   const lastNameRef = useRef(null);
@@ -80,6 +83,10 @@ const RegisterScreen = ({ navigation }) => {
 
   const handleRegister = async () => {
     if (loading) return; // Enter pressed twice
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms of Service and acknowledge the Privacy Policy to continue.");
+      return;
+    }
     const normalizedFirstName = firstName.trim();
     const normalizedLastName = lastName.trim();
     const normalizedEmail = email.trim();
@@ -123,6 +130,7 @@ const RegisterScreen = ({ navigation }) => {
       const data = await register(normalizedFirstName, normalizedLastName, normalizedEmail, password, {
         dateOfBirth,
         phone: phone.trim(),
+        acceptedTermsVersion: CURRENT_TERMS_VERSION,
       });
       if (data?.otpRequired) {
         navigation.navigate("VerifyOtp", {
@@ -248,11 +256,29 @@ const RegisterScreen = ({ navigation }) => {
         blurOnSubmit={false}
         onSubmitEditing={handleRegister}
       />
+      <Pressable
+        style={styles.agreementRow}
+        onPress={() => setAcceptedTerms(value => !value)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: acceptedTerms }}
+        accessibilityLabel="I agree to the Terms of Service and acknowledge the Privacy Policy"
+      >
+        <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+          {acceptedTerms && <Ionicons name="checkmark" size={16} color={COLORS.onPrimary} />}
+        </View>
+        <Text style={styles.legalNotice}>
+          I agree to the{' '}
+          <Text style={styles.legalLink} onPress={() => navigation.navigate("LegalDocument", { document: "Terms" })}>Terms of Service</Text>
+          {' '}and acknowledge the{' '}
+          <Text style={styles.legalLink} onPress={() => navigation.navigate("LegalDocument", { document: "Privacy" })}>Privacy Policy</Text>.
+        </Text>
+      </Pressable>
       <Button
         title="Create Account"
         onPress={handleRegister}
         fullWidth
         loading={loading}
+        disabled={!acceptedTerms}
         style={styles.registerButton}
       />
       <Button
@@ -281,6 +307,11 @@ const styles = StyleSheet.create({
     marginTop: -SPACING.sm,
   },
   registerButton: { marginTop: SPACING.lg, marginBottom: SPACING.lg },
+  agreementRow: { flexDirection: "row", alignItems: "flex-start", marginTop: SPACING.lg, marginBottom: SPACING.sm },
+  checkbox: { width: 22, height: 22, borderRadius: 5, borderWidth: 1.5, borderColor: COLORS.textSecondary, alignItems: "center", justifyContent: "center", marginRight: SPACING.sm, marginTop: 1 },
+  checkboxChecked: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  legalNotice: { ...FONTS.tiny, flex: 1, lineHeight: 19 },
+  legalLink: { color: COLORS.primary, textDecorationLine: "underline", fontWeight: "600" },
 });
 
 export default RegisterScreen;

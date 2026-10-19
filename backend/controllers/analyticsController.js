@@ -1,5 +1,6 @@
 // controllers/analyticsController.js
 const SurveyResponse = require("../models/SurveyResponse");
+const User = require("../models/User");
 const { sendSuccess } = require("../utils/responseHelper");
 
 const SKILLS = ["grammar", "vocabulary", "reading", "speaking", "writing"];
@@ -16,11 +17,29 @@ const FREQ_ORDER = ["never", "rarely", "weekly", "several_times_week", "daily"];
  */
 exports.surveySummary = async (req, res, next) => {
   try {
-    const total = await SurveyResponse.countDocuments();
+    const [total, learnerCount] = await Promise.all([
+      SurveyResponse.countDocuments(),
+      User.countDocuments({ role: "learner" }),
+    ]);
+    const responseRate = learnerCount ? +((total / learnerCount) * 100).toFixed(1) : 0;
     if (total === 0) {
       return sendSuccess(
         res,
-        { totalResponses: 0, message: "No survey data yet." },
+        {
+          totalResponses: 0,
+          totalLearners: learnerCount,
+          responseRate,
+          meanDifficulty: Object.fromEntries(SKILLS.map((skill) => [skill, 0])),
+          distribution: Object.fromEntries(SKILLS.map((skill) => [skill, {
+            counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            percentages: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          }])),
+          practiceFrequency: FREQ_ORDER.map((frequency) => ({ frequency, count: 0, percentage: 0 })),
+          timeSpent: { avgMinutesPerSession: 0, avgSessionsPerWeek: 0, avgWeeklyMinutes: 0 },
+          priorityRanking: [],
+          insights: null,
+          message: "No survey data yet.",
+        },
         "Empty dataset",
       );
     }
@@ -102,6 +121,8 @@ exports.surveySummary = async (req, res, next) => {
       res,
       {
         totalResponses: total,
+        totalLearners: learnerCount,
+        responseRate,
         meanDifficulty,
         distribution,
         practiceFrequency,

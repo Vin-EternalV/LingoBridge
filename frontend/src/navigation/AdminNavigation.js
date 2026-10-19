@@ -8,6 +8,7 @@ import AIActivityScreen from '../screens/admin/AIActivityScreen';
 import ReportsScreen from '../screens/admin/ReportsScreen';
 import SupportRequestsScreen from '../screens/admin/SupportRequestsScreen';
 import IdentityVerificationScreen from '../screens/admin/IdentityVerificationScreen';
+import SurveyInsightsScreen from '../screens/admin/SurveyInsightsScreen';
 import { Sidebar, TopBar, useShell, ADMIN_ICONS } from './WideLayout';
 import { COLORS } from '../constants/theme';
 
@@ -28,6 +29,7 @@ const AdminNavigation = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = 'grid-outline';
           if (route.name === 'Dashboard') iconName = focused ? 'grid' : 'grid-outline';
+          else if (route.name === 'Survey Insights') iconName = focused ? 'clipboard' : 'clipboard-outline';
           else if (route.name === 'Users') iconName = focused ? 'people' : 'people-outline';
           else if (route.name === 'Content') iconName = focused ? 'book' : 'book-outline';
           else if (route.name === 'AI Activity') iconName = focused ? 'sparkles' : 'sparkles-outline';
@@ -44,6 +46,7 @@ const AdminNavigation = () => {
       })}
     >
       <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
+      <Tab.Screen name="Survey Insights" component={SurveyInsightsScreen} />
       <Tab.Screen name="Users" component={UserManagementScreen} />
       <Tab.Screen name="Content" component={LearningContentScreen} />
       <Tab.Screen name="AI Activity" component={AIActivityScreen} />

@@ -3,6 +3,7 @@ const { validationResult, check } = require('express-validator');
 const NAME_PATTERN = /^(?:\p{L}\p{M}*)+(?:[ '\u2019-](?:\p{L}\p{M}*)+)*$/u;
 const MAX_PASSWORD_BYTES = 72;
 const RESERVED_EMAIL_TLDS = ['test', 'example', 'invalid', 'localhost', 'local'];
+const CURRENT_TERMS_VERSION = '2026-10-19-v1';
 
 const validate = (validations) => {
   return async (req, res, next) => {
@@ -59,6 +60,8 @@ const registerValidation = [
   nameValidation('lastName', 'Last name'),
   emailValidation('email', true),
   newPasswordValidation(),
+  check('acceptedTermsVersion', 'Please agree to the current Terms of Service and acknowledge the Privacy Policy')
+    .isString().bail().equals(CURRENT_TERMS_VERSION),
   check('dateOfBirth', 'Date of birth is required').exists().bail().isString().bail()
     .matches(/^\d{4}-\d{2}-\d{2}$/).bail()
     .custom(value => {

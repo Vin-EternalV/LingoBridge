@@ -5,6 +5,11 @@ export const getDashboardStats = async () => {
   return response.data.data;
 };
 
+export const getSurveySummary = async () => {
+  const response = await get('/analytics/survey-summary');
+  return response.data.data;
+};
+
 export const getUsers = async (params) => {
   const response = await get('/admin/users', { params });
   return response.data;

@@ -206,6 +206,21 @@ const PrivacySecurityScreen = () => {
       </Card>
 
       <SectionLabel>Privacy</SectionLabel>
+      <Card style={styles.listCard}>
+        <ActionRow
+          icon="document-text-outline"
+          title="Privacy Policy"
+          description="Read how LingoBridge handles your information."
+          onPress={() => navigation.navigate('LegalDocument', { document: 'Privacy' })}
+        />
+        <ActionRow
+          icon="reader-outline"
+          title="Terms of Service"
+          description="Review the terms for using LingoBridge."
+          onPress={() => navigation.navigate('LegalDocument', { document: 'Terms' })}
+          last
+        />
+      </Card>
       <Card>
         <View style={styles.switchRow}>
           <View style={styles.switchText}>

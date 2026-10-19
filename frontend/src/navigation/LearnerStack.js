@@ -34,6 +34,7 @@ import HelpSupportScreen from "../screens/profile/HelpSupportScreen";
 import PrivacySecurityScreen from "../screens/profile/PrivacySecurityScreen";
 import LearningProgressScreen from "../screens/learner/LearningProgressScreen";
 import IeltsVerificationScreen from "../screens/learner/IeltsVerificationScreen";
+import LegalDocumentScreen from "../screens/legal/LegalDocumentScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -73,6 +74,7 @@ const LearnerStack = () => {
       <Stack.Screen name="Appearance" component={withBackground(AppearanceScreen)} />
       <Stack.Screen name="HelpSupport" component={withBackground(HelpSupportScreen)} />
       <Stack.Screen name="PrivacySecurity" component={withBackground(PrivacySecurityScreen)} />
+      <Stack.Screen name="LegalDocument" component={withBackground(LegalDocumentScreen)} />
     </Stack.Navigator>
   );
 };

@@ -9,6 +9,7 @@ import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 import VerifyOtpScreen from "../screens/auth/VerifyOtpScreen";
 import AdminSetupScreen from "../screens/auth/AdminSetupScreen";
+import LegalDocumentScreen from "../screens/legal/LegalDocumentScreen";
 import { COLORS } from "../constants/theme";
 
 const Stack = createNativeStackNavigator();
@@ -40,6 +41,7 @@ const AuthStack = () => {
         component={withBackground(RegisterScreen)}
         options={{ title: "Create Account" }}
       />
+      <Stack.Screen name="LegalDocument" component={withBackground(LegalDocumentScreen)} options={{ title: "Legal information" }} />
       <Stack.Screen
         name="VerifyOtp"
         component={withBackground(VerifyOtpScreen)}

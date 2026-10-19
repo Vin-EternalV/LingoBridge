@@ -70,6 +70,8 @@ exports.register = async (req, res, next) => {
     const registrationDetails = {
       dateOfBirth: new Date(`${req.body.dateOfBirth}T00:00:00.000Z`),
       phone: (req.body.phone || '').trim() || undefined,
+      acceptedTermsVersion: req.body.acceptedTermsVersion,
+      acceptedTermsAt: new Date(),
     };
 
     const existingUser = await User.findOne({

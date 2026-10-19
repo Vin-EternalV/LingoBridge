@@ -51,6 +51,7 @@ export const LEARNER_ICONS = {
 
 export const ADMIN_ICONS = {
   Dashboard: ['grid', 'grid-outline'],
+  'Survey Insights': ['clipboard', 'clipboard-outline'],
   Users: ['people', 'people-outline'],
   Content: ['book', 'book-outline'],
   'AI Activity': ['sparkles', 'sparkles-outline'],

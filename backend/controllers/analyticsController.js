@@ -1,6 +1,7 @@
 // controllers/analyticsController.js
 const SurveyResponse = require("../models/SurveyResponse");
 const User = require("../models/User");
+const PracticeSession = require("../models/PracticeSession");
 const { sendSuccess } = require("../utils/responseHelper");
 
 const SKILLS = ["grammar", "vocabulary", "reading", "speaking", "writing"];
@@ -35,6 +36,9 @@ exports.surveySummary = async (req, res, next) => {
             percentages: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
           }])),
           practiceFrequency: FREQ_ORDER.map((frequency) => ({ frequency, count: 0, percentage: 0 })),
+          behaviorAccuracy: FREQ_ORDER.map((frequency) => ({
+            frequency, learners: 0, learnersWithSessions: 0, averageAccuracy: null, averageCompletedSessions: 0,
+          })),
           timeSpent: { avgMinutesPerSession: 0, avgSessionsPerWeek: 0, avgWeeklyMinutes: 0 },
           priorityRanking: [],
           insights: null,
@@ -95,6 +99,41 @@ exports.surveySummary = async (req, res, next) => {
       };
     });
 
+    // Compare self-reported practice frequency with completed-session accuracy.
+    const behaviorAccuracyRows = await SurveyResponse.aggregate([
+      {
+        $lookup: {
+          from: PracticeSession.collection.name,
+          let: { learnerId: "$userId" },
+          pipeline: [
+            { $match: { $expr: { $and: [{ $eq: ["$userId", "$$learnerId"] }, { $eq: ["$status", "completed"] }] } } },
+            { $group: { _id: null, averageAccuracy: { $avg: "$accuracy" }, completedSessions: { $sum: 1 } } },
+          ],
+          as: "sessionStats",
+        },
+      },
+      { $unwind: { path: "$sessionStats", preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: "$practiceFrequency",
+          learners: { $sum: 1 },
+          learnersWithSessions: { $sum: { $cond: [{ $gt: ["$sessionStats.completedSessions", 0] }, 1, 0] } },
+          averageAccuracy: { $avg: "$sessionStats.averageAccuracy" },
+          averageCompletedSessions: { $avg: { $ifNull: ["$sessionStats.completedSessions", 0] } },
+        },
+      },
+    ]);
+    const behaviorAccuracy = FREQ_ORDER.map((frequency) => {
+      const row = behaviorAccuracyRows.find((item) => item._id === frequency);
+      return {
+        frequency,
+        learners: row?.learners || 0,
+        learnersWithSessions: row?.learnersWithSessions || 0,
+        averageAccuracy: row?.averageAccuracy == null ? null : +row.averageAccuracy.toFixed(1),
+        averageCompletedSessions: +(row?.averageCompletedSessions || 0).toFixed(1),
+      };
+    });
+
     // --- 4. Time spent averages ---
     const [timeAgg] = await SurveyResponse.aggregate([
       {
@@ -126,6 +165,7 @@ exports.surveySummary = async (req, res, next) => {
         meanDifficulty,
         distribution,
         practiceFrequency,
+        behaviorAccuracy,
         timeSpent: {
           avgMinutesPerSession: +(timeAgg?.avgMinutesPerSession || 0).toFixed(
             1,

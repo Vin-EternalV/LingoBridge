@@ -30,6 +30,11 @@ export const getAnalytics = async (params) => {
   return response.data.data;
 };
 
+export const getSurveyAnalytics = async () => {
+  const response = await get('/analytics/survey-summary');
+  return response.data.data;
+};
+
 export const getSystemMonitoring = async () => {
   const response = await get('/super-admin/system');
   return response.data.data;

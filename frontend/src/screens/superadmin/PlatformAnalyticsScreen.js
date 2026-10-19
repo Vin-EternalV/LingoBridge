@@ -38,14 +38,19 @@ const fillDailyTrend = (rows = [], days) => {
 const PlatformAnalyticsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
+  const [surveyAnalytics, setSurveyAnalytics] = useState(null);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
 
   const fetchAnalytics = useCallback(async (period = days) => {
     try {
       setError("");
-      const data = await superAdminApi.getAnalytics({ days: period });
+      const [data, surveyData] = await Promise.all([
+        superAdminApi.getAnalytics({ days: period }),
+        superAdminApi.getSurveyAnalytics(),
+      ]);
       setAnalytics(data);
+      setSurveyAnalytics(surveyData);
     } catch (err) {
       setError(getErrorMessage(err, "Could not load platform analytics."));
     } finally {
@@ -63,6 +68,18 @@ const PlatformAnalyticsScreen = () => {
   const accuracy = analytics?.averageAccuracy ?? 0;
   const selectedDays = analytics?.days || days;
   const roleRows = Object.entries(analytics?.roleCounts || {}).map(([role, count]) => ({ label: role[0].toUpperCase() + role.slice(1), value: count }));
+  const difficultyRows = (surveyAnalytics?.priorityRanking || []).map(({ skill, meanDifficulty }, index) => ({
+    label: skill[0].toUpperCase() + skill.slice(1), value: meanDifficulty,
+    color: index === 0 ? '#F59E0B' : COLORS.primary,
+  }));
+  const frequencyRows = (surveyAnalytics?.practiceFrequency || []).map(({ frequency, count }) => ({
+    label: frequency.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()), value: count,
+  }));
+  const behaviorAccuracyRows = (surveyAnalytics?.behaviorAccuracy || [])
+    .filter(({ averageAccuracy }) => averageAccuracy !== null)
+    .map(({ frequency, averageAccuracy }) => ({
+      label: frequency.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()), value: averageAccuracy,
+    }));
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -97,6 +114,25 @@ const PlatformAnalyticsScreen = () => {
             <Card style={styles.card}>
               <PieChart title="Users by role" data={roleRows} emptyMessage="No users recorded." />
             </Card>
+            <Card style={styles.card}>
+              <VerticalBarChart title="Mean reported difficulty by skill (out of 5)" data={difficultyRows} emptyMessage="No survey responses yet." />
+              {surveyAnalytics?.totalResponses > 0 && (
+                <>
+                  <Text style={styles.caption}>Based on {surveyAnalytics.totalResponses} survey responses. The highest bar marks the skill learners report as most difficult and is the top priority for personalized content.</Text>
+                  <Text style={styles.recommendation}>{surveyAnalytics.insights?.recommendation}</Text>
+                </>
+              )}
+            </Card>
+            <Card style={styles.card}>
+              <VerticalBarChart title="Practice Frequency Distribution" data={frequencyRows} emptyMessage="No survey responses yet." />
+              {surveyAnalytics?.totalResponses > 0 && (
+                <Text style={styles.caption}>Displays how frequently learners practice independently. Concentration in rarely or weekly indicates room for reminders, streaks, and short-session options.</Text>
+              )}
+            </Card>
+            <Card style={styles.card}>
+              <VerticalBarChart title="Practice Behavior vs. Accuracy (%)" data={behaviorAccuracyRows} color={COLORS.success} emptyMessage="No completed practice sessions linked to survey responses yet." />
+              <Text style={styles.caption}>Average completed-session accuracy by learners’ self-reported practice frequency. Groups without completed sessions are omitted.</Text>
+            </Card>
           </>
         )}
       </ScrollView>
@@ -118,6 +154,7 @@ const styles = StyleSheet.create({
   periodText: { ...FONTS.small },
   periodTextSelected: { color: COLORS.onPrimary, fontWeight: '600' },
   caption: { ...FONTS.tiny, marginTop: SPACING.md },
+  recommendation: { ...FONTS.small, marginTop: SPACING.sm, color: COLORS.primary, fontWeight: '600' },
 });
 
 export default PlatformAnalyticsScreen;

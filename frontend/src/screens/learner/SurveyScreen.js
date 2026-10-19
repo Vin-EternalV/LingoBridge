@@ -1,5 +1,5 @@
 // src/screens/learner/SurveyScreen.js
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from "react-native";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
@@ -54,12 +53,14 @@ const SurveyScreen = ({ navigation }) => {
   const [sessionsPerWeek, setSessionsPerWeek] = useState("3");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const submitLock = useRef(false);
 
   const setSkillDifficulty = (skill, value) => {
     setDifficulty((prev) => ({ ...prev, [skill]: value }));
   };
 
   const handleSubmit = async () => {
+    if (submitLock.current) return;
     setError("");
     const minutes = parseInt(minutesPerSession, 10);
     const sessions = parseInt(sessionsPerWeek, 10);
@@ -73,7 +74,9 @@ const SurveyScreen = ({ navigation }) => {
       return;
     }
 
+    submitLock.current = true;
     setSubmitting(true);
+    let submitted = false;
     try {
       await submitSurvey({
         difficulty,
@@ -81,18 +84,20 @@ const SurveyScreen = ({ navigation }) => {
         minutesPerSession: minutes,
         sessionsPerWeek: sessions,
       });
-      Alert.alert(
-        "Survey submitted 🎉",
-        "Thank you! Your AI recommendations will now be personalized.",
-        [{ text: "OK", onPress: () => navigation.goBack() }],
-      );
+      submitted = true;
+      // This screen is opened directly from the Home tab; goBack returns to it
+      // and triggers its focus refresh, which hides the saved survey invitation.
+      navigation.goBack();
     } catch (e) {
       setError(
         e.response?.data?.message ||
           "Failed to submit survey. Please try again.",
       );
     } finally {
-      setSubmitting(false);
+      if (!submitted) {
+        submitLock.current = false;
+        setSubmitting(false);
+      }
     }
   };
 

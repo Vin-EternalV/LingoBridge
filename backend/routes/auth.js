@@ -5,6 +5,8 @@ const {
   login,
   verifyOtp,
   resendOtp,
+  completeAdminSetup,
+  resendAdminSetupCode,
   getMe,
   forgotPassword,
   resetPassword,
@@ -16,6 +18,8 @@ const {
   registerValidation,
   loginValidation,
   resetPasswordValidation,
+  adminSetupValidation,
+  adminSetupEmailValidation,
 } = require("../middleware/validate");
 const { authLimiter, otpLimiter } = require("../middleware/rateLimit");
 
@@ -41,6 +45,8 @@ router.post("/register", authLimiter, validate(registerValidation), register);
 router.post("/login", authLimiter, validate(loginValidation), login);
 router.post("/verify-otp", verifyLimiter, verifyOtp);
 router.post("/resend-otp", resendLimiter, resendOtp);
+router.post("/admin-setup", verifyLimiter, validate(adminSetupValidation), completeAdminSetup);
+router.post("/admin-setup/resend", resendLimiter, validate(adminSetupEmailValidation), resendAdminSetupCode);
 router.get("/me", protect, getMe);
 router.post("/forgot-password", otpLimiter, forgotPassword);
 router.post("/reset-password", authLimiter, validate(resetPasswordValidation), resetPassword);

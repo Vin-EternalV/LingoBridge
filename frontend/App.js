@@ -36,6 +36,21 @@ export default function App() {
     },
   };
 
+  const linking = {
+    prefixes: ['lingobridge://', process.env.EXPO_PUBLIC_APP_URL].filter(Boolean),
+    config: {
+      screens: {
+        Welcome: '',
+        Login: 'login',
+        Register: 'register',
+        AdminSetup: { path: 'admin-setup', parse: { email: (value) => value } },
+        VerifyOtp: 'verify-email',
+        ForgotPassword: 'forgot-password',
+        ResetPassword: 'reset-password',
+      },
+    },
+  };
+
   return (
     <SafeAreaProvider>
       <BackgroundLayer
@@ -43,7 +58,7 @@ export default function App() {
         text={appearance.backgroundImage?.text}
       >
         <AuthProvider>
-          <NavigationContainer theme={navTheme}>
+          <NavigationContainer theme={navTheme} linking={linking}>
             <AppNavigator />
             <DialogHost />
             <StatusBar style={isDark ? "light" : "dark"} />

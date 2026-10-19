@@ -270,6 +270,73 @@ exports.resendOtp = async (req, res, next) => {
   }
 };
 
+// Complete an administrator invitation: the invitee verifies the emailed code and sets their own password.
+exports.completeAdminSetup = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const code = String(req.body.code || '');
+    const user = await User.findOne({ email, role: 'admin', emailVerified: false, isActive: true })
+      .select('+password');
+    if (!user) return sendError(res, 'The invitation is invalid or has already been used.', 400);
+
+    const otp = await Otp.findOneAndUpdate(
+      { userId: user._id },
+      { $inc: { attempts: 1 } },
+      { new: true },
+    );
+    if (!otp || otp.purpose !== 'admin_setup' || otp.expiresAt.getTime() < Date.now()) {
+      if (otp && otp.purpose === 'admin_setup' && otp.expiresAt.getTime() < Date.now()) {
+        await Otp.deleteOne({ _id: otp._id });
+      }
+      return sendError(res, 'That setup code has expired. Request a new one.', 400);
+    }
+    if (otp.attempts > MAX_ATTEMPTS) {
+      await Otp.deleteOne({ _id: otp._id });
+      return sendError(res, 'Too many incorrect attempts. Request a new setup code.', 429);
+    }
+
+    const expected = Buffer.from(otp.codeHash, 'hex');
+    const given = Buffer.from(hashCode(user._id, code), 'hex');
+    const matches = expected.length === given.length && crypto.timingSafeEqual(expected, given);
+    if (!matches) {
+      if (otp.attempts >= MAX_ATTEMPTS) await Otp.deleteOne({ _id: otp._id });
+      const left = MAX_ATTEMPTS - otp.attempts;
+      return sendError(res, otp.attempts >= MAX_ATTEMPTS
+        ? 'Too many incorrect attempts. Request a new setup code.'
+        : `Incorrect code. ${left} ${left === 1 ? 'attempt' : 'attempts'} left.`, otp.attempts >= MAX_ATTEMPTS ? 429 : 400);
+    }
+
+    const consumed = await Otp.deleteOne({ _id: otp._id, purpose: 'admin_setup', codeHash: otp.codeHash });
+    if (consumed.deletedCount !== 1) return sendError(res, 'That setup code has already been used.', 400);
+    user.password = req.body.password;
+    user.emailVerified = true;
+    user.lastLogin = Date.now();
+    await user.save();
+    sendTokenResponse(user, 200, res);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.resendAdminSetupCode = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const user = await User.findOne({ email, role: 'admin', emailVerified: false, isActive: true });
+    if (user) {
+      try {
+        const result = await issueOtp(user, 'admin_setup');
+        if (result.wait) return sendError(res, `Please wait ${result.wait} seconds before requesting another code.`, 429);
+      } catch (err) {
+        console.error('Admin setup code resend failed:', err.message);
+        return sendError(res, "We couldn't send the setup code. Please try again in a moment.", 502);
+      }
+    }
+    sendSuccess(res, {}, 'If an administrator invitation is pending for this email, a setup code has been sent.');
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Current user + profile
 // ---------------------------------------------------------------------------

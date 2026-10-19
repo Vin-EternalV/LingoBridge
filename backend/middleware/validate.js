@@ -70,6 +70,20 @@ const registerValidation = [
   check('phone', 'Phone number must be 20 characters or fewer').optional({ values: 'falsy' }).isLength({ max: 20 })
 ];
 
+const adminInviteValidation = [
+  nameValidation('firstName', 'First name'),
+  nameValidation('lastName', 'Last name'),
+  emailValidation('email', true)
+];
+
+const adminSetupValidation = [
+  emailValidation('email'),
+  check('code', 'Enter the 6-digit setup code').isString().bail().matches(/^\d{6}$/),
+  newPasswordValidation('password', 'Password')
+];
+
+const adminSetupEmailValidation = [emailValidation('email')];
+
 const loginValidation = [
   emailValidation(),
   check('password')
@@ -142,6 +156,9 @@ const supportValidation = [
 module.exports = {
   validate,
   registerValidation,
+  adminInviteValidation,
+  adminSetupValidation,
+  adminSetupEmailValidation,
   loginValidation,
   resetPasswordValidation,
   onboardingValidation,

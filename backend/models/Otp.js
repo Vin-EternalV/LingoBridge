@@ -11,7 +11,7 @@ const otpSchema = new mongoose.Schema({
   // 'register' = confirming a new email address, 'login' = second step of signing in
   purpose: {
     type: String,
-    enum: ['register', 'login'],
+    enum: ['register', 'login', 'admin_setup'],
     required: true
   },
   codeHash: {

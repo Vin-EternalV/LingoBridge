@@ -8,6 +8,7 @@ import RegisterScreen from "../screens/auth/RegisterScreen";
 import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 import VerifyOtpScreen from "../screens/auth/VerifyOtpScreen";
+import AdminSetupScreen from "../screens/auth/AdminSetupScreen";
 import { COLORS } from "../constants/theme";
 
 const Stack = createNativeStackNavigator();
@@ -43,6 +44,11 @@ const AuthStack = () => {
         name="VerifyOtp"
         component={withBackground(VerifyOtpScreen)}
         options={{ title: "Verify Your Email" }}
+      />
+      <Stack.Screen
+        name="AdminSetup"
+        component={withBackground(AdminSetupScreen)}
+        options={{ title: "Set Up Administrator Account" }}
       />
       <Stack.Screen
         name="ForgotPassword"

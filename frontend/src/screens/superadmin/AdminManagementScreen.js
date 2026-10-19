@@ -4,7 +4,6 @@ import Header from "../../components/Header";
 import DataTable from "../../components/DataTable";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
-import Chip from "../../components/Chip";
 import Badge from "../../components/Badge";
 import Modal from "../../components/Modal";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -12,13 +11,12 @@ import ErrorMessage from "../../components/ErrorMessage";
 import * as superAdminApi from "../../api/superadmin";
 import { getErrorMessage } from "../../utils/errors";
 import { COLORS, FONTS, SPACING } from "../../constants/theme";
+import { notify } from "../../utils/dialog";
 
 const EMPTY = {
   firstName: "",
   lastName: "",
   email: "",
-  password: "",
-  role: "admin",
 };
 
 const AdminManagementScreen = () => {
@@ -48,20 +46,17 @@ const AdminManagementScreen = () => {
   }, []);
 
   const handleCreate = async () => {
-    if (!form.firstName || !form.lastName || !form.email || !form.password) {
-      setError("All fields are required.");
-      return;
-    }
-    if (form.password.length < 8 || form.password.length > 72) {
-      setError("Password must be between 8 and 72 characters.");
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+      setError("Name and email are required.");
       return;
     }
     setSaving(true);
     setError("");
     try {
-      await superAdminApi.createAdmin(form);
+      const invited = await superAdminApi.createAdmin(form);
       setCreating(false);
       setForm(EMPTY);
+      notify("Administrator invited", `A setup code was sent to ${invited.email}. They will verify the code and choose their own password.`);
       fetchAdmins();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -89,6 +84,7 @@ const AdminManagementScreen = () => {
     { title: "Last Name", key: "lastName", width: 120 },
     { title: "Email", key: "email", width: 240 },
     { title: "Role", key: "role", width: 120 },
+    { title: "Setup", key: "emailVerified", width: 130, render: (verified) => <Badge text={verified === false ? "Pending" : "Complete"} variant={verified === false ? "warning" : "success"} /> },
     { title: "Status", key: "isActive", width: 100 },
   ];
 
@@ -117,6 +113,7 @@ const AdminManagementScreen = () => {
             data={admins}
             onRowAction={setSelected}
             actionLabel="Manage"
+            isActionDisabled={(row) => row.role === "superadmin"}
           />
         )}
       </ScrollView>
@@ -127,13 +124,14 @@ const AdminManagementScreen = () => {
         title="Add administrator"
         footer={
           <Button
-            title="Create"
+            title="Send setup code"
             onPress={handleCreate}
             loading={saving}
             fullWidth
           />
         }
       >
+        <Text style={styles.inviteNote}>Only regular administrator accounts can be created here. The invited person will receive a one-time code by email and set their own password.</Text>
         <Input
           label="First name"
           value={form.firstName}
@@ -154,24 +152,6 @@ const AdminManagementScreen = () => {
           autoCapitalize="none"
           maxLength={254}
         />
-        <Input
-          label="Temporary password"
-          value={form.password}
-          onChangeText={(v) => setForm({ ...form, password: v })}
-          secureTextEntry
-          maxLength={72}
-        />
-        <Text style={styles.fieldLabel}>Role</Text>
-        <View style={styles.chipWrap}>
-          {["admin", "superadmin"].map((r) => (
-            <Chip
-              key={r}
-              label={r}
-              selected={form.role === r}
-              onPress={() => setForm({ ...form, role: r })}
-            />
-          ))}
-        </View>
       </Modal>
 
       <Modal
@@ -236,6 +216,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   fieldName: { ...FONTS.h4, marginBottom: 4 },
+  inviteNote: { ...FONTS.small, color: COLORS.textSecondary, marginBottom: SPACING.base, lineHeight: 20 },
   fieldMuted: { ...FONTS.small, marginBottom: SPACING.md },
   row: {
     flexDirection: "row",

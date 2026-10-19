@@ -114,16 +114,25 @@ exports.sendResetCode = async (to, code) => {
 exports.sendOtpCode = async (to, code, purpose) => {
   const isProd = process.env.NODE_ENV === "production";
   const registering = purpose === "register";
-  const subject = registering ? "Verify your LingoBridge email" : "Your LingoBridge login code";
-  const intro = registering
-    ? "Welcome to LingoBridge! Use this code to verify your email address:"
-    : "Use this code to finish logging in to LingoBridge:";
+  const adminSetup = purpose === "admin_setup";
+  const subject = adminSetup ? "Set up your LingoBridge administrator account" : registering ? "Verify your LingoBridge email" : "Your LingoBridge login code";
+  const intro = adminSetup
+    ? "A LingoBridge administrator invited you. Use this code in the administrator setup screen to verify your email and choose your password:"
+    : registering
+      ? "Welcome to LingoBridge! Use this code to verify your email address:"
+      : "Use this code to finish logging in to LingoBridge:";
+
+  const frontendUrl = String(process.env.FRONTEND_URL || (adminSetup && !isProd ? 'http://localhost:8081' : '')).replace(/\/$/, '');
+  if (adminSetup && !frontendUrl) throw new Error('FRONTEND_URL is required to send administrator invitations');
+  const setupUrl = adminSetup ? `${frontendUrl}/admin-setup?email=${encodeURIComponent(to)}` : '';
+  const textIntro = adminSetup ? `${intro}\n${setupUrl}` : intro;
+  const htmlIntro = adminSetup ? `${intro}<br/><a href="${setupUrl}">Open administrator account setup</a>` : intro;
 
   const message = {
     to,
     subject,
-    text: `${intro} ${code}. It expires in 10 minutes. If this wasn't you, ignore this email and do not share the code.`,
-    html: `<p>${intro}</p>
+    text: `${textIntro} ${code}. It expires in 10 minutes. If this wasn't you, ignore this email and do not share the code.`,
+    html: `<p>${htmlIntro}</p>
              <h2 style="letter-spacing:4px;">${code}</h2>
              <p>This code expires in 10 minutes. If this wasn't you, ignore this email and never share the code with anyone.</p>`,
   };

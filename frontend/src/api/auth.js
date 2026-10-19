@@ -21,6 +21,16 @@ export const resendOtp = async (challenge) => {
   return response.data.data; // { resendIn }
 };
 
+export const completeAdminSetup = async (email, code, password) => {
+  const response = await post('/auth/admin-setup', { email, code, password });
+  return response.data.data;
+};
+
+export const resendAdminSetupCode = async (email) => {
+  const response = await post('/auth/admin-setup/resend', { email });
+  return response.data.data;
+};
+
 export const getMe = async () => {
   const response = await get('/auth/me');
   return response.data.data; // { user, profile }

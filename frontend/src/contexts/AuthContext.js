@@ -91,6 +91,12 @@ export const AuthProvider = ({ children }) => {
 
   const resendOtp = (challenge) => authApi.resendOtp(challenge);
 
+  const completeAdminSetup = async (email, code, password) => {
+    const data = await authApi.completeAdminSetup(email, code, password);
+    if (data.token) await finishSignIn(data);
+    return data;
+  };
+
   const logout = async () => {
     try {
       await cancelAllReminders(); // don't leave one learner's reminders on a shared device
@@ -133,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         register,
         verifyOtp,
         resendOtp,
+        completeAdminSetup,
         logout,
         updateUser,
         refreshUser,

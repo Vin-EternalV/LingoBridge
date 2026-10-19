@@ -12,7 +12,7 @@ const {
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
 const { ROLES } = require('../config/constants');
-const { validate, registerValidation } = require('../middleware/validate');
+const { validate, adminInviteValidation } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.use(authorize(ROLES.SUPERADMIN));
 
 router.get('/dashboard', getSuperAdminDashboard);
 router.get('/admins', getAdmins);
-router.post('/admins', validate(registerValidation), createAdmin);
+router.post('/admins', validate(adminInviteValidation), createAdmin);
 router.put('/admins/:id/status', updateAdminStatus);
 router.get('/roles', getRolesAndPermissions);
 router.get('/analytics', getPlatformAnalytics);

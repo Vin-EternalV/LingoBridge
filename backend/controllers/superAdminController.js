@@ -2,8 +2,10 @@ const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const PracticeSession = require('../models/PracticeSession');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/responseHelper');
 const { ROLES } = require('../config/constants');
+const { issueOtp } = require('../utils/otp');
 
 exports.getSuperAdminDashboard = async (req, res, next) => {
   try {
@@ -27,18 +29,29 @@ exports.getAdmins = async (req, res, next) => {
 
 exports.createAdmin = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
-    
-    if (role !== ROLES.ADMIN && role !== ROLES.SUPERADMIN) {
-      return sendError(res, 'Invalid role', 400);
-    }
+    const { firstName, lastName, email } = req.body;
     
     const existing = await User.findOne({ email });
     if (existing) return sendError(res, 'Email already in use', 400);
     
-    const admin = await User.create({ firstName, lastName, email, password, role });
-    
-    sendSuccess(res, { id: admin._id, email: admin.email, role: admin.role }, 'Admin created', 201);
+    // This password is random and never disclosed. The invitee replaces it after verifying
+    // the one-time code sent to their email. New invitations can only create regular admins.
+    const admin = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: crypto.randomBytes(32).toString('hex'),
+      role: ROLES.ADMIN,
+      emailVerified: false
+    });
+    try {
+      await issueOtp(admin, 'admin_setup');
+    } catch (err) {
+      await User.deleteOne({ _id: admin._id });
+      throw err;
+    }
+
+    sendSuccess(res, { id: admin._id, email: admin.email, role: admin.role }, 'Admin invitation sent', 201);
   } catch (err) {
     next(err);
   }
@@ -50,6 +63,9 @@ exports.updateAdminStatus = async (req, res, next) => {
     if (!user) return sendError(res, 'User not found', 404);
     if (user.role !== ROLES.ADMIN && user.role !== ROLES.SUPERADMIN) {
       return sendError(res, 'User is not an admin', 400);
+    }
+    if (user.role === ROLES.SUPERADMIN) {
+      return sendError(res, 'The superadmin account cannot be disabled here.', 403);
     }
     
     user.isActive = !user.isActive;

@@ -11,6 +11,7 @@ const { sendSuccess, sendError } = require("../utils/responseHelper");
 const SKILLS = ["grammar", "vocabulary", "reading", "speaking", "writing"];
 
 exports.chat = async (req, res, next) => {
+  const requestStartedAt = Date.now();
   try {
     const { message } = req.body;
     if (
@@ -27,6 +28,7 @@ exports.chat = async (req, res, next) => {
 
     const moderationFlag = detectPromptModerationCategory(message);
 
+    const databaseStartedAt = Date.now();
     const [account, learningProfile] = await Promise.all([
       User.findById(req.user.id).select("nativeLanguage"),
       LearningProfile.findOne({ userId: req.user.id }).select("englishLevel"),
@@ -50,13 +52,17 @@ exports.chat = async (req, res, next) => {
       { role: "user", content: turn.prompt },
       { role: "assistant", content: turn.response?.response || "" },
     ]).filter((item) => item.content);
+    const databaseReadMs = Date.now() - databaseStartedAt;
 
+    const aiStartedAt = Date.now();
     const { data, tokensUsed } = await aiService.chatAssistant({
       messages: [...historyMessages, { role: "user", content: message }],
       learnerLevel: learningProfile?.englishLevel,
       nativeLanguage: account?.nativeLanguage,
     });
+    const aiMs = Date.now() - aiStartedAt;
 
+    const saveStartedAt = Date.now();
     await logAIInteraction(req.user, {
       type: "assistant_chat",
       prompt: message,
@@ -65,9 +71,17 @@ exports.chat = async (req, res, next) => {
       success: true,
       moderationFlag,
     });
+    const saveMs = Date.now() - saveStartedAt;
+
+    console.info(
+      `[AI timing] chat db_reads_ms=${databaseReadMs} ai_ms=${aiMs} save_ms=${saveMs} total_ms=${Date.now() - requestStartedAt}`,
+    );
 
     sendSuccess(res, data, "Chat response generated");
   } catch (err) {
+    console.warn(
+      `[AI timing] chat failed total_ms=${Date.now() - requestStartedAt}`,
+    );
     await logAIInteraction(req.user, {
       type: "assistant_chat",
       success: false,

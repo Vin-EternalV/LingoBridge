@@ -109,12 +109,15 @@ exports.updateSession = async (req, res, next) => {
 };
 
 exports.answerSession = async (req, res, next) => {
+  const requestStartedAt = Date.now();
   try {
     const { index, userAnswer } = req.body;
     if (!Number.isInteger(index) || index < 0 || typeof userAnswer !== 'string' || !userAnswer.trim() || userAnswer.length > 2000) {
       return sendError(res, 'Submit a valid answer for the current question.', 400);
     }
+    const databaseReadStartedAt = Date.now();
     const session = await PracticeSession.findOne({ _id: req.params.id, userId: req.user.id, serverValidated: true });
+    const databaseReadMs = Date.now() - databaseReadStartedAt;
     if (!session) return sendError(res, 'Session not found', 404);
     if (session.exercises[index]?.userAnswer) {
       return sendSuccess(res, { feedback: session.exercises[index].feedback, currentIndex: session.currentIndex, completed: session.status === 'completed', duplicate: true }, 'Answer already saved');
@@ -123,7 +126,10 @@ exports.answerSession = async (req, res, next) => {
       return sendError(res, 'This answer is not for the current question.', 409);
     }
     const exercise = session.exercises[index].exerciseData;
+    const aiStartedAt = Date.now();
     const { data: feedback } = await aiService.evaluateAnswer({ exercise, userAnswer, learnerLevel: session.levelAtStart });
+    const aiMs = Date.now() - aiStartedAt;
+    const databaseWriteStartedAt = Date.now();
     const isLast = index === session.exercises.length - 1;
     const set = {
       [`exercises.${index}.userAnswer`]: userAnswer.trim(),
@@ -152,8 +158,15 @@ exports.answerSession = async (req, res, next) => {
     saved.accuracy = saved.score;
     await saved.save();
     const advancement = isLast ? await creditCompletedSession(saved, req.user.id) : null;
+    const databaseWriteMs = Date.now() - databaseWriteStartedAt;
+    console.info(
+      `[AI timing] practice_answer db_read_ms=${databaseReadMs} ai_ms=${aiMs} db_write_ms=${databaseWriteMs} total_ms=${Date.now() - requestStartedAt} final_answer=${isLast}`,
+    );
     sendSuccess(res, { feedback, currentIndex: saved.currentIndex, completed: isLast, levelAdvanced: !!advancement?.advanced, newLevel: advancement?.newLevel || null, session: isLast ? saved : undefined }, 'Answer saved');
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.warn(`[AI timing] practice_answer failed total_ms=${Date.now() - requestStartedAt}`);
+    next(err);
+  }
 };
 
 async function creditCompletedSession(session, userId) {

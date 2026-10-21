@@ -39,10 +39,10 @@ const ExerciseScreen = ({ route, navigation }) => {
   const [questionStartedAt, setQuestionStartedAt] = useState(startedAt || Date.now());
 
   useEffect(() => {
-    if (!exercise) return undefined;
+    if (!exercise || loading || submitting) return undefined;
     const timer = setInterval(() => setSecondsLeft((remaining) => Math.max(0, remaining - 1)), 1000);
     return () => clearInterval(timer);
-  }, [currentIndex, exercises.length, timeLimit, loading]);
+  }, [currentIndex, exercises.length, timeLimit, loading, submitting]);
 
   // A timeout leaves the previous question in its submitting state. Reset all
   // per-question state when Feedback advances back to this screen.

@@ -10,6 +10,37 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { useAuth } from '../../contexts/AuthContext';
 
+const TOPIC_SUGGESTIONS = {
+  grammar: [
+    { topic: 'Everyday Tenses', description: 'Talk about routines, current activities, and past experiences.' },
+    { topic: 'Making Plans', description: 'Practice conditionals and useful phrases for future plans.' },
+    { topic: 'Describing People', description: 'Use adjectives and sentence structures to describe someone.' },
+  ],
+  vocabulary: [
+    { topic: 'At the Restaurant', description: 'Learn words for ordering food and talking about meals.' },
+    { topic: 'Travel and Directions', description: 'Build useful vocabulary for getting around while traveling.' },
+    { topic: 'Workplace Conversations', description: 'Practice common words and phrases used at work.' },
+  ],
+  reading: [
+    { topic: 'A Day in the City', description: 'Read a short story about places, people, and daily routines.' },
+    { topic: 'Healthy Habits', description: 'Explore an informative passage about everyday well-being.' },
+    { topic: 'A Travel Journal', description: 'Follow a personal account of a trip and its memorable moments.' },
+  ],
+  writing: [
+    { topic: 'A Memorable Weekend', description: 'Write a clear paragraph about an experience you enjoyed.' },
+    { topic: 'Your Ideal Workplace', description: 'Describe the environment where you do your best work.' },
+    { topic: 'A Friendly Invitation', description: 'Practice writing a warm message with useful details.' },
+  ],
+  speaking: [
+    { topic: 'Introducing Yourself', description: 'Share your background, interests, and what you are learning.' },
+    { topic: 'A Favorite Place', description: 'Describe a place you enjoy and explain what makes it special.' },
+    { topic: 'Sharing an Opinion', description: 'Give your view on a familiar topic and support it with reasons.' },
+  ],
+};
+
+const SEXUAL_TOPIC_PATTERN = /\b(sex|sexual|porn|pornography|erotic|erotica|nude|nudity|genital|intercourse|orgasm|masturbat\w*|fetish|brothel|prostitut\w*|rape|incest)\b/i;
+const ENGLISH_TRAINING_PATTERN = /\b(english|grammar|vocabulary|vocab|word\w*|sentence\w*|tense\w*|verb\w*|adjective\w*|adverb\w*|preposition\w*|article\w*|punctuation|spelling|pronunciation|phonics|idiom\w*|phrase\w*|conversation\w*|speak\w*|writ\w*|read\w*|comprehension|essay\w*|paragraph\w*|email\w*|communication|question\w*|introduc\w*|describ\w*|opinion\w*|interview\w*|presentation\w*|story\w*|summar\w*|conditionals?|passive voice|past tense|present tense|future tense)\b/i;
+
 
 const TopicSelectionScreen = ({ route, navigation }) => {
   const { skill, difficulty: initialDifficulty } = route.params;
@@ -18,6 +49,7 @@ const TopicSelectionScreen = ({ route, navigation }) => {
   const unlocked = level === 'advanced' ? ['easy', 'medium', 'hard'] : level === 'intermediate' || level === 'upper_intermediate' ? ['easy', 'medium'] : ['easy'];
   const [selectedTopic, setSelectedTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
+  const [customTopicError, setCustomTopicError] = useState('');
   const [difficulty, setDifficulty] = useState(unlocked.includes(initialDifficulty) ? initialDifficulty : unlocked[unlocked.length - 1]);
   const [topics, setTopics] = useState(TOPICS_BY_SKILL[skill] || []);
   const [adminTopics, setAdminTopics] = useState(null);
@@ -47,15 +79,31 @@ const TopicSelectionScreen = ({ route, navigation }) => {
     if (selectedTopic && !matching.includes(selectedTopic)) setSelectedTopic('');
   }, [adminTopics, difficulty]);
   const skillTitle = skill.charAt(0).toUpperCase() + skill.slice(1);
+  const topicSuggestions = TOPIC_SUGGESTIONS[skill] || TOPIC_SUGGESTIONS.speaking;
+  const selectedSuggestion = topicSuggestions.find(({ topic }) => topic === selectedTopic);
+  const adminTopicDetails = adminTopics?.filter((item) => !item.difficulty || item.difficulty === difficulty) || [];
+  const selectedAdminTopic = adminTopicDetails.find((item) => item.topic === selectedTopic);
 
   const handleStart = () => {
-    const finalTopic = customTopic.trim() ? customTopic : selectedTopic;
+    const isCustomTopic = !!customTopic.trim();
+    const finalTopic = isCustomTopic ? customTopic.trim() : selectedTopic;
     if (!finalTopic) return;
+
+    if (isCustomTopic && SEXUAL_TOPIC_PATTERN.test(finalTopic)) {
+      setCustomTopicError('Sexual content is not allowed. Enter a safe English-learning topic.');
+      return;
+    }
+    if (isCustomTopic && !ENGLISH_TRAINING_PATTERN.test(finalTopic)) {
+      setCustomTopicError('Custom topics must focus on English learning, such as grammar, vocabulary, reading, writing, or conversation.');
+      return;
+    }
+    setCustomTopicError('');
     
     navigation.navigate('Exercise', {
       skill,
       topic: finalTopic,
-      difficulty
+      difficulty,
+      isCustomTopic,
     });
   };
 
@@ -105,38 +153,59 @@ const TopicSelectionScreen = ({ route, navigation }) => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select a Topic</Text>
+          <Text style={styles.suggestionsLabel}>Need an idea? Try one of these:</Text>
+          <View style={styles.topicsGrid}>
+            {topicSuggestions.map(({ topic }) => {
+              const isSelected = selectedTopic === topic;
+              return (
+                <TouchableOpacity
+                  key={topic}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.topicPill, isSelected && styles.topicPillSelected]}
+                  onPress={() => handleTopicSelect(topic)}
+                >
+                  <Text style={[styles.topicText, isSelected && styles.topicTextSelected]}>{topic}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
           <ErrorMessage message={topicsError} />
           {loadingTopics ? <LoadingSpinner message="Loading topics..." /> : null}
           <View style={styles.topicsGrid}>
             {topics.map((t) => (
               <TouchableOpacity
                 key={t}
-                style={[
-                  styles.topicPill,
-                  selectedTopic === t && styles.topicPillSelected
-                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: selectedTopic === t }}
+                style={[styles.topicPill, selectedTopic === t && styles.topicPillSelected]}
                 onPress={() => handleTopicSelect(t)}
               >
-                <Text style={[
-                  styles.topicText,
-                  selectedTopic === t && styles.topicTextSelected
-                ]}>
-                  {t}
-                </Text>
+                <Text style={[styles.topicText, selectedTopic === t && styles.topicTextSelected]}>{t}</Text>
               </TouchableOpacity>
             ))}
           </View>
+          {selectedSuggestion?.description || selectedAdminTopic?.description?.trim() ? (
+            <Text style={styles.selectedSuggestionDescription}>
+              {selectedSuggestion?.description || selectedAdminTopic.description.trim()}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Or Enter Custom Topic</Text>
+          <Text style={styles.customTopicHint}>
+            Enter an English-learning topic, such as grammar, vocabulary, reading, writing, or conversation.
+          </Text>
           <TextInput
             style={styles.customInput}
-            placeholder="e.g. Discussing favorite movies..."
+            placeholder="e.g. Practicing past-tense verbs..."
             value={customTopic}
-            onChangeText={handleCustomTopicChange}
+            maxLength={100}
+            onChangeText={(text) => { handleCustomTopicChange(text); setCustomTopicError(''); }}
             placeholderTextColor={COLORS.textLight}
           />
+          <ErrorMessage message={customTopicError} />
         </View>
 
       </ScrollView>
@@ -202,6 +271,18 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: SPACING.sm,
   },
+  suggestionsLabel: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginTop: -SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  selectedSuggestionDescription: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.base,
+  },
   topicPill: {
     paddingHorizontal: SPACING.base,
     paddingVertical: SPACING.sm,
@@ -230,6 +311,12 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     ...FONTS.regular,
     color: COLORS.text,
+  },
+  customTopicHint: {
+    ...FONTS.small,
+    color: COLORS.textSecondary,
+    marginTop: -SPACING.sm,
+    marginBottom: SPACING.sm,
   },
   footer: {
     padding: SPACING.base,

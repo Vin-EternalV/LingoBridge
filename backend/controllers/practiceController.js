@@ -6,6 +6,7 @@ const aiService = require('../services/aiService');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
 const LearningProfile = require('../models/LearningProfile');
 const { normalizeLevel, DIFFICULTY_BY_LEVEL, LEVEL_REQUIREMENTS, SKILLS } = require('../utils/learningProgression');
+const { validateCustomTopic, containsSexualTopic } = require('../utils/customTopicValidation');
 
 exports.getLearningContent = async (req, res, next) => {
   try {
@@ -21,8 +22,15 @@ exports.getLearningContent = async (req, res, next) => {
 
 exports.generateExercises = async (req, res, next) => {
   try {
-    const { skill, topic, difficulty, previousPerformance, count } = req.body;
+    const { skill, topic, difficulty, previousPerformance, count, isCustomTopic } = req.body;
     if (!SKILLS.includes(skill)) return sendError(res, 'Choose one of the five learning skills.', 400);
+    if (containsSexualTopic(typeof topic === 'string' ? topic : '')) {
+      return sendError(res, 'Sexual content is not allowed. Choose a safe English-learning topic.', 400);
+    }
+    if (isCustomTopic) {
+      const topicError = validateCustomTopic(topic);
+      if (topicError) return sendError(res, topicError, 400);
+    }
     const profile = await LearningProfile.findOne({ userId: req.user.id });
     if (!profile?.onboardingComplete) return sendError(res, 'Complete your learning preferences before starting practice.', 403);
     const level = normalizeLevel(profile.currentEnglishLevel || profile.englishLevel);

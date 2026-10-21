@@ -17,6 +17,7 @@ const ExerciseScreen = ({ route, navigation }) => {
     skill,
     topic,
     difficulty,
+    isCustomTopic = false,
     exercises: savedExercises,
     sessionId: savedSessionId,
     currentIndex = 0,
@@ -79,6 +80,7 @@ const ExerciseScreen = ({ route, navigation }) => {
           skill,
           topic,
           difficulty,
+          isCustomTopic,
           count: ({ easy: 5, medium: 8, hard: 10 })[String(difficulty || "medium").toLowerCase()] || 8,
         });
         const list = generated.exercises || generated;
@@ -161,7 +163,7 @@ const ExerciseScreen = ({ route, navigation }) => {
           <Button
             title="Try Again"
             onPress={() =>
-              navigation.replace("Exercise", { skill, topic, difficulty })
+              navigation.replace("Exercise", { skill, topic, difficulty, isCustomTopic })
             }
           />
         </View>

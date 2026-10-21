@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
@@ -33,6 +33,7 @@ const ExerciseScreen = ({ route, navigation }) => {
   const [userAnswer, setUserAnswer] = useState("");
   const [loading, setLoading] = useState(!savedExercises?.length);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
   const timeLimit = ({ easy: 30, medium: 20, hard: 15 })[String(difficulty || "medium").toLowerCase()] || 20;
   const [secondsLeft, setSecondsLeft] = useState(timeLimit);
@@ -40,7 +41,11 @@ const ExerciseScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (!exercise || loading || submitting) return undefined;
-    const timer = setInterval(() => setSecondsLeft((remaining) => Math.max(0, remaining - 1)), 1000);
+    const timer = setInterval(() => {
+      if (!submittingRef.current) {
+        setSecondsLeft((remaining) => Math.max(0, remaining - 1));
+      }
+    }, 1000);
     return () => clearInterval(timer);
   }, [currentIndex, exercises.length, timeLimit, loading, submitting]);
 
@@ -48,6 +53,7 @@ const ExerciseScreen = ({ route, navigation }) => {
   // per-question state when Feedback advances back to this screen.
   useEffect(() => {
     setUserAnswer("");
+    submittingRef.current = false;
     setSubmitting(false);
     setError("");
     setSecondsLeft(timeLimit);
@@ -56,6 +62,7 @@ const ExerciseScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (secondsLeft === 0 && exercise && !submitting) {
+      submittingRef.current = true;
       setSubmitting(true);
       submitAnswer({ sessionId, index: currentIndex, userAnswer: 'Time expired' }).then((result) => navigation.navigate("Feedback", {
         levelAdvanced: result.levelAdvanced,
@@ -66,6 +73,7 @@ const ExerciseScreen = ({ route, navigation }) => {
       })).catch((requestError) => {
         setError(requestError.response?.data?.message || 'Could not save the timed answer. Please try again.');
         setSecondsLeft(timeLimit);
+        submittingRef.current = false;
         setSubmitting(false);
       });
     }
@@ -99,7 +107,8 @@ const ExerciseScreen = ({ route, navigation }) => {
   }, [skill, topic, difficulty, savedExercises]);
 
   const handleSubmit = async () => {
-    if (!userAnswer.trim() || submitting) return;
+    if (!userAnswer.trim() || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError("");
     const exercise = exercises[currentIndex];
@@ -128,6 +137,7 @@ const ExerciseScreen = ({ route, navigation }) => {
           "Unable to evaluate your answer. Please try again.",
       );
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -186,7 +196,9 @@ const ExerciseScreen = ({ route, navigation }) => {
         <Text style={styles.progressText}>
           Question {currentIndex + 1} of {exercises.length}
         </Text>
-        <Text style={styles.progressText}>Time remaining: {secondsLeft}s</Text>
+        <Text style={styles.progressText}>
+          {submitting ? `Checking answer · timer paused (${secondsLeft}s)` : `Time remaining: ${secondsLeft}s`}
+        </Text>
         <ProgressBar
           progress={currentIndex / exercises.length}
           showLabel={false}

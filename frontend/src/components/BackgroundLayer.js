@@ -5,11 +5,13 @@ import { COLORS } from '../constants/theme';
 // Draws the picture behind its children. Screens use a transparent background while a picture is active.
 const BackgroundLayer = ({ children }) => (
   <View style={styles.root}>
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.orb, styles.mintOrb]} />
-      <View style={[styles.orb, styles.blueOrb]} />
-      <View style={[styles.orb, styles.goldOrb]} />
-    </View>
+    {COLORS.background !== '#FFFFFF' && (
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <View style={[styles.orb, styles.mintOrb]} />
+        <View style={[styles.orb, styles.blueOrb]} />
+        <View style={[styles.orb, styles.goldOrb]} />
+      </View>
+    )}
     {children}
   </View>
 );

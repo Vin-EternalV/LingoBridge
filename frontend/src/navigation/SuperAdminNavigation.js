@@ -42,6 +42,7 @@ const SuperAdminNavigation = () => {
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarStyle: { backgroundColor: COLORS.white, borderTopColor: COLORS.border },
         headerShown: enabled,
         header: (props) => <TopBar {...props} />,
       })}

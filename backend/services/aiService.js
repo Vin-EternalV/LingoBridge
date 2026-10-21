@@ -447,7 +447,7 @@ exports.generateExercise = async ({
 
   const result = await callAI({
     instructions:
-      "You create safe, accurate English grammar exercises for English learners. Return only the requested JSON. Make each answer exactly match one option. Use clear sentences, plausible distractors, varied grammar topics, and vocabulary appropriate to the learner level. Avoid duplicates and ambiguity.",
+      "You create safe, accurate English language exercises for English learners. Keep all content educational, appropriate for general audiences, and directly focused on the requested English skill. Never create sexual content. Return only the requested JSON. Make each answer exactly match one option. Use clear sentences, plausible distractors, varied grammar topics, and vocabulary appropriate to the learner level. Avoid duplicates and ambiguity.",
 
     input: `Create exactly ${exerciseCount} ${difficulty} ${skill} exercises about "${topic}" for a ${learnerLevel || "general"} English learner. Use exactly four options per question and one correct answer. Match grammar complexity to the selected difficulty: easy=A1-A2, medium=B1-B2, hard=C1-C2.`,
 

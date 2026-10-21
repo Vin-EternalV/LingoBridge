@@ -4,6 +4,7 @@ export const generateExercises = async ({
   skill,
   topic,
   difficulty,
+  isCustomTopic,
   learnerLevel,
   count,
 }) => {
@@ -11,6 +12,7 @@ export const generateExercises = async ({
     skill,
     topic,
     difficulty,
+    isCustomTopic,
     learnerLevel,
     count,
   });
